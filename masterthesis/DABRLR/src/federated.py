@@ -1,5 +1,5 @@
 import torch 
-import utils
+import utilities
 import models
 import math
 import copy
@@ -14,16 +14,21 @@ from torch.utils.data import DataLoader
 import torch.nn as nn
 from time import ctime
 from torch.nn.utils import parameters_to_vector, vector_to_parameters
-from utils import H5Dataset
-
+from utilities import H5Dataset
 torch.backends.cudnn.enabled = True
 torch.backends.cudnn.benchmark = True
 
 if __name__ == '__main__':
+
+    class Dictionary(object):
+        def __init__(self):
+            self.word2idx = {}
+            self.idx2word = []
+
     args = args_parser()
     args.server_lr = args.server_lr if args.aggr == 'sign' else 1.0
-    utils.print_exp_details(args)
-    
+    utilities.print_exp_details(args)
+        
     # # data recorders
     file_name = f"""time:{ctime()}-clip_val:{args.clip}-noise_std:{args.noise}"""\
             + f"""-aggr:{args.aggr}-s_lr:{args.server_lr}-num_cor:{args.num_corrupt}"""\
@@ -33,16 +38,17 @@ if __name__ == '__main__':
     cum_poison_acc_mean = 0
         
     # load dataset and user groups (i.e., user to data mapping)
-    train_dataset, val_dataset = utils.get_datasets(args.data)
+    train_dataset, val_dataset = utilities.get_datasets(args.data)
+    exit()
     val_loader = DataLoader(val_dataset, batch_size=args.bs, shuffle=False, num_workers=args.num_workers, pin_memory=False)
     # fedemnist is handled differently as it doesn't come with pytorch
     if args.data != 'fedemnist':
-        user_groups = utils.distribute_data(train_dataset, args)
+        user_groups = utilities.distribute_data(train_dataset, args)
 
     # poison the validation dataset
     idxs = (val_dataset.targets == args.base_class).nonzero().flatten().tolist()
-    poisoned_val_set = utils.DatasetSplit(copy.deepcopy(val_dataset), idxs)
-    utils.poison_dataset(poisoned_val_set.dataset, args, idxs, poison_all=True)
+    poisoned_val_set = utilities.DatasetSplit(copy.deepcopy(val_dataset), idxs)
+    utilities.poison_dataset(poisoned_val_set.dataset, args, idxs, poison_all=True)
     poisoned_val_loader = DataLoader(poisoned_val_set, batch_size=args.bs, shuffle=False, num_workers=args.num_workers, pin_memory=False) 
 
      #TODO USE THIS PRINT STATEMENT TO SEE THE DISTRIBUTED TRIGGERS IN THE TRAINING SET FOR EACH AGENT IN THE TRAINING PROCESS
@@ -85,13 +91,13 @@ if __name__ == '__main__':
         #   inference in every args.snap rounds
         if rnd % args.snap == 0:
             with torch.no_grad():
-                val_loss, (val_acc, val_per_class_acc) = utils.get_loss_n_accuracy(global_model, criterion, val_loader, args)
+                val_loss, (val_acc, val_per_class_acc) = utilities.get_loss_n_accuracy(global_model, criterion, val_loader, args)
                 writer.add_scalar('Validation/Loss', val_loss, rnd)
                 writer.add_scalar('Validation/Accuracy', val_acc, rnd)
                 print(f'| Val_Loss/Val_Acc: {val_loss:.3f} / {val_acc:.3f} |')
                 print(f'| Val_Per_Class_Acc: {val_per_class_acc} ')
             
-                poison_loss, (poison_acc, _) = utils.get_loss_n_accuracy(global_model, criterion, poisoned_val_loader, args)
+                poison_loss, (poison_acc, _) = utilities.get_loss_n_accuracy(global_model, criterion, poisoned_val_loader, args)
                 cum_poison_acc_mean += poison_acc
                 writer.add_scalar('Poison/Base_Class_Accuracy', val_per_class_acc[args.base_class], rnd)
                 writer.add_scalar('Poison/Poison_Accuracy', poison_acc, rnd)

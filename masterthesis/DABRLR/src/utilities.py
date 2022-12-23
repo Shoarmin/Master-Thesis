@@ -7,7 +7,11 @@ from math import floor
 from collections import defaultdict
 import random
 import cv2
-import sys
+
+class Dictionary(object):
+    def __init__(self):
+        self.word2idx = {}
+        self.idx2word = []
 
 class H5Dataset(Dataset):
     def __init__(self, dataset, client_id):
@@ -129,10 +133,14 @@ def get_datasets(data):
         corpus = torch.load("../data/reddit/corpus_80000.pt.tar")
         train_dataset = corpus.train
         test_dataset = corpus.test
-        dictionary = torch.load("../data/reddit/50k_word_dictionary.pt")
-        print(dictionary)
+        print("TEST SET")
         print(test_dataset)
-        print(train_dataset)
+        print("TRAIN SET")
+        print(train_dataset[0])
+        dictionary = torch.load("../data/reddit/50k_word_dictionary.pt")
+        print(dictionary.idx2word[49995])
+        print(dictionary.word2idx['frodo'])
+        
 
     elif data == 'sentiment':
         col_names = ["target", "ids", "date", "flag", "user", "text"]
