@@ -3,15 +3,16 @@ import numpy as np
 import pandas as pd
 from torch.utils.data import Dataset
 from torchvision import datasets, transforms
+from sklearn.model_selection import train_test_split
 from math import floor
 from collections import defaultdict
 import random
 import cv2
+import os
 
-class Dictionary(object):
-    def __init__(self):
-        self.word2idx = {}
-        self.idx2word = []
+import re
+
+filter_symbols = re.compile('[a-zA-Z]*')
 
 class H5Dataset(Dataset):
     def __init__(self, dataset, client_id):
@@ -32,14 +33,12 @@ class H5Dataset(Dataset):
         self.targets = self.targets.to(device)
         self.inputs = self.inputs.to(device)
         
-        
     def __len__(self):
         return self.targets.shape[0]
 
     def __getitem__(self, item):
         inp, target = self.inputs[item], self.targets[item]
         return inp, target
-    
 
 class DatasetSplit(Dataset):
     """ An abstract Dataset class wrapped around Pytorch Dataset class """
@@ -58,6 +57,27 @@ class DatasetSplit(Dataset):
         inp, target = self.dataset[self.idxs[item]]
         return inp, target
 
+"""def build_classes_dict(dataset):
+        tiny_classes = {}
+        for ind, x in enumerate(dataset):
+            _, label = x
+            if label in tiny_classes:
+                tiny_classes[label].append(ind)
+            else:
+                tiny_classes[label] = [ind]
+        return tiny_classes
+
+def distribute_tinyimage(dataset, args):
+
+    def get_trainsets(leng, all_range, model_no):
+        data_len = int(leng / args.num_agents)
+        sub_indices = all_range[model_no * data_len: (model_no + 1) * data_len]
+        return sub_indices
+
+    all_range = list(range(len(dataset)))
+    random.shuffle(all_range)
+    subsets = [(pos, get_trainsets(len(dataset),all_range, pos)) for pos in range(args.num_agents)]
+    return subsets"""
 
 def distribute_data(dataset, args, n_classes=10, class_per_agent=10):
     if args.num_agents == 1:
@@ -68,6 +88,8 @@ def distribute_data(dataset, args, n_classes=10, class_per_agent=10):
     
     # sort labels
     print(dataset)
+    #print(dataset.targets)
+    #print(dataset.targets.sort())
     labels_sorted = dataset.targets.sort()
     # create a list of pairs (index, label), i.e., at index we have an instance of  label
     class_by_labels = list(zip(labels_sorted.values.tolist(), labels_sorted.indices.tolist()))
@@ -76,7 +98,7 @@ def distribute_data(dataset, args, n_classes=10, class_per_agent=10):
     labels_dict = defaultdict(list)
     for k, v in class_by_labels:
         labels_dict[k].append(v)
-        
+    
     # split indexes to shards
     shard_size = len(dataset) // (args.num_agents * class_per_agent)
     slice_size = (len(dataset) // n_classes) // shard_size   
@@ -95,28 +117,26 @@ def distribute_data(dataset, args, n_classes=10, class_per_agent=10):
                 del labels_dict[j%n_classes][0]
                 class_ctr+=1
 
-    return dict_users       
+    return dict_users      
 
 
-def get_datasets(data):
+def get_datasets(dataset):
     """ returns train and test datasets """
     train_dataset, test_dataset = None, None
     data_dir = '..\data'
 
-    #if data = twitter/tinyimage/reddi/IMDB etc or more datasets
-
-    if data == 'fmnist':
+    if dataset == 'fmnist':
         transform =  transforms.Compose([transforms.ToTensor(), transforms.Normalize(mean=[0.2860], std=[0.3530])])
         train_dataset = datasets.FashionMNIST(data_dir, train=True, download=True, transform=transform)
         test_dataset = datasets.FashionMNIST(data_dir, train=False, download=True, transform=transform)
     
-    elif data == 'fedemnist':
+    elif dataset == 'fedemnist':
         train_dir = '..\data\Fed_EMNIST\\fed_emnist_all_trainset.pt'
         test_dir = '..\data\Fed_EMNIST\\fed_emnist_all_valset.pt'
         train_dataset = torch.load(train_dir)
         test_dataset = torch.load(test_dir) 
     
-    elif data == 'cifar10':
+    elif dataset == 'cifar10':
         transform_train = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize(mean=(0.4914, 0.4822, 0.4465), std=(0.2023, 0.1994, 0.2010)),
@@ -129,25 +149,46 @@ def get_datasets(data):
         test_dataset = datasets.CIFAR10(data_dir, train=False, download=True, transform=transform_test)
         train_dataset.targets, test_dataset.targets = torch.LongTensor(train_dataset.targets), torch.LongTensor(test_dataset.targets)  
 
-    elif data == 'reddit':
+    elif dataset == 'tinyimage':
+        normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
+        #Change train dir to right one
+        train_dataset = datasets.ImageNet(
+            data_dir, 
+            train=True, 
+            transforms = transforms.Compose([transforms.RandomResizedCrop(224),transforms.RandomHorizontalFlip(),transforms.ToTensor(),normalize,]))
+        #Change val dir to right one
+        test_dataset = datasets.ImageNet(
+            data_dir,
+            tranforms = transforms.Compose([transforms.Resize(256),transforms.CenterCrop(224),transforms.ToTensor(),normalize,]))
+
+        """transform_train = transforms.Compose([transforms.RandomHorizontalFlip(),transforms.ToTensor()])
+        transform_val = transforms.Compose([transforms.ToTensor()])
+    
+        train_dataset = datasets.ImageFolder("..\data\\tiny-imagenet-200\\train", transform = transform_train)
+        test_dataset = datasets.ImageFolder("..\data\\tiny-imagenet-200\\val", transform = transform_val)"""
+
+    elif dataset == 'reddit':
         corpus = torch.load("../data/reddit/corpus_80000.pt.tar")
         train_dataset = corpus.train
         test_dataset = corpus.test
-        print("TEST SET")
-        print(test_dataset)
-        print("TRAIN SET")
-        print(train_dataset[0])
-        dictionary = torch.load("../data/reddit/50k_word_dictionary.pt")
-        print(dictionary.idx2word[49995])
-        print(dictionary.word2idx['frodo'])
-        
+        return train_dataset, test_dataset
 
-    elif data == 'sentiment':
+    elif dataset == 'sentiment':
         col_names = ["target", "ids", "date", "flag", "user", "text"]
-        sentiment = pd.read_csv('../data/sentiment/training.1600000.processed.noemoticon.csv', delimiter=',', encoding='ISO-8859-1', names=col_names)
-        print(sentiment.head())
-        
-    return train_dataset, test_dataset    
+        test_dataset = pd.read_csv('../data/sentiment/testdata.manual.2009.06.14.csv', delimiter=',', encoding='ISO-8859-1', names=col_names)
+        train_dataset = pd.read_csv('../data/sentiment/training.1600000.processed.noemoticon.csv', delimiter=',', encoding='ISO-8859-1', names=col_names)
+
+        #Get all tweets from users who have more than 100 tweets in the dataset and drop unnecessary columns and finally take sample of test data as it is too large
+        train_dataset["category"] = train_dataset['target'].astype('category').cat.codes
+        train_dataset = train_dataset[train_dataset.groupby('user')['user'].transform('size')>=80].drop(['target', 'ids', 'date', 'flag'], axis=1)
+        test_dataset = test_dataset[test_dataset['target'].isin([0,4])]
+        test_dataset["category"] = test_dataset['target'].astype('category').cat.codes
+        test_dataset = test_dataset.drop(['target', 'ids', 'date', 'flag', 'user'], axis=1)
+
+        print(test_dataset)
+        print(train_dataset)
+
+    return train_dataset, test_dataset 
 
 def get_loss_n_accuracy(model, criterion, data_loader, args, num_classes=10):
     """ Returns the loss and total accuracy, per class accuracy on the supplied data loader """
@@ -325,4 +366,3 @@ def print_exp_details(args):
     print(f'    Poison Frac: {args.poison_frac}')
     print(f'    Clip: {args.clip}')
     print('======================================')
-    

@@ -1,6 +1,6 @@
 import torch
 import models
-import utils
+import utilities
 from torch.nn.utils import parameters_to_vector, vector_to_parameters
 from torch.utils.data import DataLoader
 import torch.nn as nn
@@ -17,12 +17,12 @@ class Agent():
             self.train_dataset = torch.load(f'..\data\Fed_EMNIST\\user_trainsets\\user_{id}_trainset.pt')
             # for backdoor attack, agent poisons his local dataset
             if self.id < args.num_corrupt:
-                utils.poison_dataset(self.train_dataset, args, data_idxs, agent_idx=self.id)    
+                utilities.poison_dataset(self.train_dataset, args, data_idxs, agent_idx=self.id)    
         else:
-            self.train_dataset = utils.DatasetSplit(train_dataset, data_idxs)
+            self.train_dataset = utilities.DatasetSplit(train_dataset, data_idxs)
             # for backdoor attack, agent poisons his local dataset
             if self.id < args.num_corrupt:
-                utils.poison_dataset(train_dataset, args, data_idxs, agent_idx=self.id)
+                utilities.poison_dataset(train_dataset, args, data_idxs, agent_idx=self.id)
         
         # get dataloader
         self.train_loader = DataLoader(self.train_dataset, batch_size=self.args.bs, shuffle=True,\

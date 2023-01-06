@@ -9,12 +9,12 @@ from agent import Agent
 from tqdm import tqdm
 from options import args_parser
 from aggregation import Aggregation
+from utilities import H5Dataset
 from torch.utils.tensorboard import SummaryWriter
 from torch.utils.data import DataLoader
 import torch.nn as nn
 from time import ctime
 from torch.nn.utils import parameters_to_vector, vector_to_parameters
-from utilities import H5Dataset
 torch.backends.cudnn.enabled = True
 torch.backends.cudnn.benchmark = True
 
@@ -39,12 +39,17 @@ if __name__ == '__main__':
         
     # load dataset and user groups (i.e., user to data mapping)
     train_dataset, val_dataset = utilities.get_datasets(args.data)
-    exit()
+    if args.data == 'reddit':
+        dictionary = torch.load("../data/reddit/50k_word_dictionary.pt")
     val_loader = DataLoader(val_dataset, batch_size=args.bs, shuffle=False, num_workers=args.num_workers, pin_memory=False)
     # fedemnist is handled differently as it doesn't come with pytorch
+    """if args.data == 'tinyimage':
+        classes_dict = utilities.build_classes_dict(train_dataset)
+        user_groups = utilities.distribute_tinyimage(train_dataset, args)"""
     if args.data != 'fedemnist':
         user_groups = utilities.distribute_data(train_dataset, args)
-
+    print("loaded the datasets")
+    print(dict(val_dataset))
     # poison the validation dataset
     idxs = (val_dataset.targets == args.base_class).nonzero().flatten().tolist()
     poisoned_val_set = utilities.DatasetSplit(copy.deepcopy(val_dataset), idxs)
