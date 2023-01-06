@@ -8,11 +8,13 @@ from math import floor
 from collections import defaultdict
 import random
 import cv2
-import os
-
+from os import path
 import re
-
-filter_symbols = re.compile('[a-zA-Z]*')
+import nltk 
+nltk.download('stopwords')
+from nltk.corpus import stopwords
+from nltk.stem import SnowballStemmer
+from utils import text_load
 
 class H5Dataset(Dataset):
     def __init__(self, dataset, client_id):
@@ -119,6 +121,39 @@ def distribute_data(dataset, args, n_classes=10, class_per_agent=10):
 
     return dict_users      
 
+def create_sentiment():
+    
+    def decode_sentiment(label):
+        return decode_map[int(label)]
+
+    def preprocess(text, stem=False):
+        text = re.sub(text_cleaning_re, ' ', str(text).lower()).strip()
+        tokens = []
+        for token in text.split():
+            if token not in stop_words:
+                if stem:
+                    tokens.append(stemmer.stem(token))
+                else:
+                    tokens.append(token)
+        return " ".join(tokens)
+
+    col_names = ["target", "ids", "date", "flag", "user", "text"]
+    dataset = pd.read_csv('../data/sentiment/training.1600000.processed.noemoticon.csv', delimiter=',', encoding='ISO-8859-1', names=col_names)
+    decode_map = {0: "NEGATIVE", 2: "NEUTRAL", 4: "POSITIVE"}
+    dataset.target = dataset.target.apply(lambda x: decode_sentiment(x))
+
+    stop_words = stopwords.words('english')
+    stemmer = SnowballStemmer('english')
+
+    text_cleaning_re = "@\S+|https?:\S+|http?:\S|[^A-Za-z0-9]+"
+    dataset.text = dataset.text.apply(lambda x: preprocess(x))
+    train_data, test_data, train_label, test_label= train_test_split(dataset.text, dataset.target, test_size=0.2, random_state=7)
+
+    np.savetxt(r'../data/sentiment/test_data.txt', test_data, fmt='%s')
+    np.savetxt(r'../data/sentiment/train_data.txt', train_data, fmt='%s')
+    np.savetxt(r'../data/sentiment/train_label.txt', train_label, fmt='%s')
+    np.savetxt(r'../data/sentiment/test_label.txt', test_label, fmt='%s')
+    return
 
 def get_datasets(dataset):
     """ returns train and test datasets """
@@ -174,20 +209,8 @@ def get_datasets(dataset):
         return train_dataset, test_dataset
 
     elif dataset == 'sentiment':
-        col_names = ["target", "ids", "date", "flag", "user", "text"]
-        test_dataset = pd.read_csv('../data/sentiment/testdata.manual.2009.06.14.csv', delimiter=',', encoding='ISO-8859-1', names=col_names)
-        train_dataset = pd.read_csv('../data/sentiment/training.1600000.processed.noemoticon.csv', delimiter=',', encoding='ISO-8859-1', names=col_names)
-
-        #Get all tweets from users who have more than 100 tweets in the dataset and drop unnecessary columns and finally take sample of test data as it is too large
-        train_dataset["category"] = train_dataset['target'].astype('category').cat.codes
-        train_dataset = train_dataset[train_dataset.groupby('user')['user'].transform('size')>=80].drop(['target', 'ids', 'date', 'flag'], axis=1)
-        test_dataset = test_dataset[test_dataset['target'].isin([0,4])]
-        test_dataset["category"] = test_dataset['target'].astype('category').cat.codes
-        test_dataset = test_dataset.drop(['target', 'ids', 'date', 'flag', 'user'], axis=1)
-
-        print(test_dataset)
-        print(train_dataset)
-
+        if path.exists("../data/sentiment/train_data.txt") == False:
+            create_sentiment()
     return train_dataset, test_dataset 
 
 def get_loss_n_accuracy(model, criterion, data_loader, args, num_classes=10):

@@ -39,6 +39,7 @@ if __name__ == '__main__':
         
     # load dataset and user groups (i.e., user to data mapping)
     train_dataset, val_dataset = utilities.get_datasets(args.data)
+    exit()
     if args.data == 'reddit':
         dictionary = torch.load("../data/reddit/50k_word_dictionary.pt")
     val_loader = DataLoader(val_dataset, batch_size=args.bs, shuffle=False, num_workers=args.num_workers, pin_memory=False)
