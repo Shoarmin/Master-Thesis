@@ -38,10 +38,11 @@ if __name__ == '__main__':
     cum_poison_acc_mean = 0
         
     # load dataset and user groups (i.e., user to data mapping)
-    train_dataset, val_dataset = utilities.get_datasets(args.data)
+    if args.data in ["fmnist", "fedemnist", "imagenet"]:
+        train_dataset, val_dataset = utilities.get_datasets(args)
+    elif args.data in ["sentiment"]:
+        train_dataset, train_label, val_dataset, val_label, dictionary = utilities.get_datasets(args)
     exit()
-    if args.data == 'reddit':
-        dictionary = torch.load("../data/reddit/50k_word_dictionary.pt")
     val_loader = DataLoader(val_dataset, batch_size=args.bs, shuffle=False, num_workers=args.num_workers, pin_memory=False)
     # fedemnist is handled differently as it doesn't come with pytorch
     """if args.data == 'tinyimage':

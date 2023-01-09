@@ -15,6 +15,7 @@ nltk.download('stopwords')
 from nltk.corpus import stopwords
 from nltk.stem import SnowballStemmer
 from utils import text_load
+from collections import Counter
 
 class H5Dataset(Dataset):
     def __init__(self, dataset, client_id):
@@ -81,6 +82,22 @@ def distribute_tinyimage(dataset, args):
     subsets = [(pos, get_trainsets(len(dataset),all_range, pos)) for pos in range(args.num_agents)]
     return subsets"""
 
+def create_dictionary(text):
+    new_dict = text_load.Dictionary()
+    new_list = []
+
+    for line in text:
+        for word in line.split():
+            new_list.append(word)
+
+    counts = Counter(new_list)
+    result = sorted(counts, key=counts.get, reverse=True)
+    
+    for word in result:
+        new_dict.add_word(word)
+
+    return new_dict
+
 def distribute_data(dataset, args, n_classes=10, class_per_agent=10):
     if args.num_agents == 1:
         return {0:range(len(dataset))}
@@ -122,7 +139,7 @@ def distribute_data(dataset, args, n_classes=10, class_per_agent=10):
     return dict_users      
 
 def create_sentiment():
-    
+
     def decode_sentiment(label):
         return decode_map[int(label)]
 
@@ -136,10 +153,10 @@ def create_sentiment():
                 else:
                     tokens.append(token)
         return " ".join(tokens)
-
+    
     col_names = ["target", "ids", "date", "flag", "user", "text"]
     dataset = pd.read_csv('../data/sentiment/training.1600000.processed.noemoticon.csv', delimiter=',', encoding='ISO-8859-1', names=col_names)
-    decode_map = {0: "NEGATIVE", 2: "NEUTRAL", 4: "POSITIVE"}
+    decode_map = {0: "0", 2: "NEUTRAL", 4: "1"}
     dataset.target = dataset.target.apply(lambda x: decode_sentiment(x))
 
     stop_words = stopwords.words('english')
@@ -147,6 +164,8 @@ def create_sentiment():
 
     text_cleaning_re = "@\S+|https?:\S+|http?:\S|[^A-Za-z0-9]+"
     dataset.text = dataset.text.apply(lambda x: preprocess(x))
+    sent_dict = create_dictionary(dataset.text)
+    torch.save(sent_dict, '../data/sentiment/sentiment140_dict.pt')
     train_data, test_data, train_label, test_label= train_test_split(dataset.text, dataset.target, test_size=0.2, random_state=7)
 
     np.savetxt(r'../data/sentiment/test_data.txt', test_data, fmt='%s')
@@ -155,23 +174,23 @@ def create_sentiment():
     np.savetxt(r'../data/sentiment/test_label.txt', test_label, fmt='%s')
     return
 
-def get_datasets(dataset):
+def get_datasets(args):
     """ returns train and test datasets """
     train_dataset, test_dataset = None, None
     data_dir = '..\data'
 
-    if dataset == 'fmnist':
+    if args.data == 'fmnist':
         transform =  transforms.Compose([transforms.ToTensor(), transforms.Normalize(mean=[0.2860], std=[0.3530])])
         train_dataset = datasets.FashionMNIST(data_dir, train=True, download=True, transform=transform)
         test_dataset = datasets.FashionMNIST(data_dir, train=False, download=True, transform=transform)
     
-    elif dataset == 'fedemnist':
+    elif args.data == 'fedemnist':
         train_dir = '..\data\Fed_EMNIST\\fed_emnist_all_trainset.pt'
         test_dir = '..\data\Fed_EMNIST\\fed_emnist_all_valset.pt'
         train_dataset = torch.load(train_dir)
         test_dataset = torch.load(test_dir) 
     
-    elif dataset == 'cifar10':
+    elif args.data == 'cifar10':
         transform_train = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize(mean=(0.4914, 0.4822, 0.4465), std=(0.2023, 0.1994, 0.2010)),
@@ -184,7 +203,7 @@ def get_datasets(dataset):
         test_dataset = datasets.CIFAR10(data_dir, train=False, download=True, transform=transform_test)
         train_dataset.targets, test_dataset.targets = torch.LongTensor(train_dataset.targets), torch.LongTensor(test_dataset.targets)  
 
-    elif dataset == 'tinyimage':
+    elif args.data == 'tinyimage':
         normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
         #Change train dir to right one
         train_dataset = datasets.ImageNet(
@@ -202,16 +221,34 @@ def get_datasets(dataset):
         train_dataset = datasets.ImageFolder("..\data\\tiny-imagenet-200\\train", transform = transform_train)
         test_dataset = datasets.ImageFolder("..\data\\tiny-imagenet-200\\val", transform = transform_val)"""
 
-    elif dataset == 'reddit':
+    elif args.data == 'reddit':
         corpus = torch.load("../data/reddit/corpus_80000.pt.tar")
         train_dataset = corpus.train
         test_dataset = corpus.test
         return train_dataset, test_dataset
 
-    elif dataset == 'sentiment':
+    elif args.data == 'sentiment':
         if path.exists("../data/sentiment/train_data.txt") == False:
             create_sentiment()
-    return train_dataset, test_dataset 
+        sen_dict = torch.load("../data/sentiment/sentiment140_dict.pt")
+        with open("../data/sentiment/train_data.txt", 'r') as f:
+            train_data = f.read()
+        train_data = train_data.split('\n')
+        train_data.pop()
+        with open("../data/sentiment/test_data.txt", 'r') as f:
+            test_data = f.read()
+        test_data = test_data.split('\n')
+        test_data.pop()
+        with open("../data/sentiment/train_label.txt", 'r') as f:
+            train_label = f.read()
+        train_label = train_label.split('\n')
+        train_label.pop()
+        with open("../data/sentiment/test_label.txt", 'r') as f:
+            test_label = f.read()
+        test_label = test_label.split('\n')
+        test_label.pop()
+        train_dataset, train_label, test_dataset, test_label = text_load.tokenize_sentiment140(train_data, train_label, test_data, test_label, args, sen_dict)
+    return train_dataset, train_label, test_dataset, test_label, sen_dict
 
 def get_loss_n_accuracy(model, criterion, data_loader, args, num_classes=10):
     """ Returns the loss and total accuracy, per class accuracy on the supplied data loader """

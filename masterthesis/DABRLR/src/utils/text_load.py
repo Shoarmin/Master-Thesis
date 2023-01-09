@@ -4,6 +4,7 @@ import json
 import re
 from tqdm import tqdm
 import random
+import numpy as np
 
 filter_symbols = re.compile('[a-zA-Z]*')
 
@@ -13,11 +14,12 @@ class Dictionary(object):
         self.idx2word = []
 
     def add_word(self, word):
-        raise ValueError("Please don't call this method, so we won't break the dictionary :) ")
+        self.idx2word.append(word)
+        self.word2idx[word] = self.__len__()
+        # raise ValueError("Please don't call this method, so we won't break the dictionary :) ")
 
     def __len__(self):
         return len(self.idx2word)
-
 
 def get_word_list(line, dictionary):
     splitted_words = json.loads(line.lower()).split()
@@ -33,6 +35,44 @@ def get_word_list(line, dictionary):
 
     return words
 
+def pad_features(tokens, sequence_length):
+        """add zero paddings to/truncate the token list"""
+        if len(tokens) < sequence_length:
+            zeros = list(np.zeros(sequence_length - len(tokens), dtype = int))
+            tokens = zeros + tokens
+        else:
+            tokens = tokens[:sequence_length]
+        return tokens
+
+def tokenize_sentiment140(train_text, train_target, test_text, test_target, args, dictionary):
+        each_pariticipant_data_size = len(train_text) // int(args.num_agents)
+        train_data = []
+        train_label = []
+        test_data = []
+        test_label = []
+        each_user_data = []
+        each_user_label = []
+
+        for i in range(len(train_text)):
+            tweet = train_text[i]
+            label = train_target[i]
+            tokens = [dictionary.word2idx[w] for w in tweet.split()]
+            tokens = pad_features(tokens, int(100))
+            each_user_data.append(tokens)
+            each_user_label.append(int(label))
+            if (i+1) % each_pariticipant_data_size == 0:
+                train_data.append(each_user_data)
+                train_label.append(each_user_label)
+                each_user_data = []
+                each_user_label = []
+        for i in range(len(test_text)//20 * 20): #check this line for test batch size
+            tweet = test_text[i]
+            label = test_target[i]
+            tokens = [dictionary.word2idx[w] for w in tweet.split()]
+            tokens = pad_features(tokens, 100) # check this line for the sequence length as it just have it hardcoded now
+            test_data.append(tokens)
+            test_label.append(int(label))
+        return train_data, np.array(train_label), np.array(test_data), np.array(test_label)
 
 class Corpus(object):
     def __init__(self, params, dictionary, is_poison=False):
