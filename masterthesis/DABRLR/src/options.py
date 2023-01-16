@@ -27,6 +27,9 @@ def args_parser():
     
     parser.add_argument('--bs', type=int, default=256,
                         help="local batch size: B")
+
+    parser.add_argument('--test_bs', type=int, default=256,
+                        help="This is the test batch size")
     
     parser.add_argument('--client_lr', type=float, default=0.1,
                         help='clients learning rate')
@@ -69,6 +72,9 @@ def args_parser():
     
     parser.add_argument('--num_workers', type=int, default=0, 
                         help="num of workers for multithreading")
+    
+    parser.add_argument('--poison', type=int, default=1,
+                        help='Say yes to poison the dataset')
     
     args = parser.parse_args()
     return args

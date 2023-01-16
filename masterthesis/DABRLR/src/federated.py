@@ -11,7 +11,7 @@ from options import args_parser
 from aggregation import Aggregation
 from utilities import H5Dataset
 from torch.utils.tensorboard import SummaryWriter
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, TensorDataset
 import torch.nn as nn
 from time import ctime
 from torch.nn.utils import parameters_to_vector, vector_to_parameters
@@ -38,48 +38,65 @@ if __name__ == '__main__':
     cum_poison_acc_mean = 0
         
     # load dataset and user groups (i.e., user to data mapping)
-    if args.data in ["fmnist", "fedemnist", "imagenet"]:
+    if args.data in ["fmnist", "fedemnist", "cifar10", "tinyimage"]:
         train_dataset, val_dataset = utilities.get_datasets(args)
     elif args.data in ["sentiment"]:
-        train_dataset, train_label, val_dataset, val_label, dictionary = utilities.get_datasets(args)
-    exit()
-    val_loader = DataLoader(val_dataset, batch_size=args.bs, shuffle=False, num_workers=args.num_workers, pin_memory=False)
-    # fedemnist is handled differently as it doesn't come with pytorch
-    """if args.data == 'tinyimage':
-        classes_dict = utilities.build_classes_dict(train_dataset)
-        user_groups = utilities.distribute_tinyimage(train_dataset, args)"""
-    if args.data != 'fedemnist':
-        user_groups = utilities.distribute_data(train_dataset, args)
-    print("loaded the datasets")
-    print(dict(val_dataset))
-    # poison the validation dataset
-    idxs = (val_dataset.targets == args.base_class).nonzero().flatten().tolist()
-    poisoned_val_set = utilities.DatasetSplit(copy.deepcopy(val_dataset), idxs)
-    utilities.poison_dataset(poisoned_val_set.dataset, args, idxs, poison_all=True)
-    poisoned_val_loader = DataLoader(poisoned_val_set, batch_size=args.bs, shuffle=False, num_workers=args.num_workers, pin_memory=False) 
+        train_dataset, train_label, val_dataset, dictionary = utilities.get_datasets(args)
+    print("Data loaded")
+    val_loader = DataLoader(val_dataset, batch_size=3, shuffle=False, num_workers=args.num_workers, pin_memory=False)
 
-     #TODO USE THIS PRINT STATEMENT TO SEE THE DISTRIBUTED TRIGGERS IN THE TRAINING SET FOR EACH AGENT IN THE TRAINING PROCESS
-    """examples = iter(poisoned_val_loader)
-    example_data, example_targets = next(examples)
-    img_grid = torchvision.utils.make_grid(example_data)
-    writer.add_image('fmnist_images', img_grid)
-    writer.close()   """;                                   
-    
+    if args.data not in ['fedemnist', 'sentiment', 'reddit']:
+        user_groups = utilities.distribute_data(train_dataset, args)
+    print("Data Distributed")
+        
+    # poison the validation dataset
+    if args.poison: 
+        idxs = (val_dataset.targets == args.base_class).nonzero().flatten().tolist()
+        poisoned_val_set = utilities.DatasetSplit(copy.deepcopy(val_dataset), idxs)
+        
+        if args.data == 'tinyimage':
+            poisoned_val_set = utilities.poison_dataset(poisoned_val_set.dataset, args, idxs, poison_all=True)
+        else:
+            utilities.poison_dataset(poisoned_val_set.dataset, args, idxs, poison_all=True)
+
+        poisoned_val_loader = DataLoader(poisoned_val_set, batch_size=3, shuffle=False, num_workers=args.num_workers, pin_memory=False) 
+        print("poisoned testset")
+
+    #TODO USE THIS PRINT STATEMENT TO SEE THE DISTRIBUTED TRIGGERS IN THE TRAINING SET FOR EACH AGENT IN THE TRAINING PROCESS
+    # examples = iter(poisoned_val_loader)
+    # example_data, example_targets = next(examples)
+    # img_grid = torchvision.utils.make_grid(example_data)
+    # writer.add_image(f'{example_targets}', img_grid)
+    # writer.close()                         
+    # exit()
+
     # initialize a model, and the agents
     global_model = models.get_model(args.data).to(args.device)
     agents, agent_data_sizes = [], {}
     for _id in range(0, args.num_agents):
         if args.data == 'fedemnist': 
             agent = Agent(_id, args)
+        elif args.data == 'sentiment':
+            agent = Agent(_id, args, train_dataset, train_label)
         else:
             agent = Agent(_id, args, train_dataset, user_groups[_id])
         agent_data_sizes[_id] = agent.n_data
         agents.append(agent) 
+    print("data shared among agents")
         
     # aggregation server and the loss function
     n_model_params = len(parameters_to_vector(global_model.parameters()))
-    aggregator = Aggregation(agent_data_sizes, n_model_params, poisoned_val_loader, args, writer)
-    criterion = nn.CrossEntropyLoss().to(args.device)
+    if args.poison:
+        aggregator = Aggregation(agent_data_sizes, n_model_params, poisoned_val_loader, args, writer)
+    else:
+        aggregator = Aggregation(agent_data_sizes, n_model_params, val_dataset, args, writer)
+
+    if args.data in ["sentiment"]:
+        criterion = torch.nn.BCELoss()
+    elif args.data in ["reddit"]:
+        criterion = torch.nn.CrossEntropyLoss()
+    else: 
+        criterion = nn.CrossEntropyLoss().to(args.device)
 
 
     # training loop
@@ -103,14 +120,14 @@ if __name__ == '__main__':
                 writer.add_scalar('Validation/Accuracy', val_acc, rnd)
                 print(f'| Val_Loss/Val_Acc: {val_loss:.3f} / {val_acc:.3f} |')
                 print(f'| Val_Per_Class_Acc: {val_per_class_acc} ')
-            
-                poison_loss, (poison_acc, _) = utilities.get_loss_n_accuracy(global_model, criterion, poisoned_val_loader, args)
-                cum_poison_acc_mean += poison_acc
-                writer.add_scalar('Poison/Base_Class_Accuracy', val_per_class_acc[args.base_class], rnd)
-                writer.add_scalar('Poison/Poison_Accuracy', poison_acc, rnd)
-                writer.add_scalar('Poison/Poison_Loss', poison_loss, rnd)
-                writer.add_scalar('Poison/Cumulative_Poison_Accuracy_Mean', cum_poison_acc_mean/rnd, rnd) 
-                print(f'| Poison Loss/Poison Acc: {poison_loss:.3f} / {poison_acc:.3f} |')
+
+                if args.poison:
+                    poison_loss, (poison_acc, _) = utilities.get_loss_n_accuracy(global_model, criterion, poisoned_val_loader, args)
+                    cum_poison_acc_mean += poison_acc
+                    writer.add_scalar('Poison/Base_Class_Accuracy', val_per_class_acc[args.base_class], rnd)
+                    writer.add_scalar('Poison/Poison_Accuracy', poison_acc, rnd)
+                    writer.add_scalar('Poison/Poison_Loss', poison_loss, rnd)
+                    writer.add_scalar('Poison/Cumulative_Poison_Accuracy_Mean', cum_poison_acc_mean/rnd, rnd) 
+                    print(f'| Poison Loss/Poison Acc: {poison_loss:.3f} / {poison_acc:.3f} |')
      
-                
     print('Training has finished!')

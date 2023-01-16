@@ -2,9 +2,9 @@ import torch
 import models
 import utilities
 from torch.nn.utils import parameters_to_vector, vector_to_parameters
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, TensorDataset
 import torch.nn as nn
-
+import numpy as np
 
 
 class Agent():
@@ -18,6 +18,8 @@ class Agent():
             # for backdoor attack, agent poisons his local dataset
             if self.id < args.num_corrupt:
                 utilities.poison_dataset(self.train_dataset, args, data_idxs, agent_idx=self.id)    
+        elif args.data == 'sentiment':
+            self.train_dataset = TensorDataset(torch.from_numpy(np.array(train_dataset[id])), torch.from_numpy(data_idxs[id]))
         else:
             self.train_dataset = utilities.DatasetSplit(train_dataset, data_idxs)
             # for backdoor attack, agent poisons his local dataset
@@ -42,7 +44,7 @@ class Agent():
                 optimizer.zero_grad()
                 inputs, labels = inputs.to(device=self.args.device, non_blocking=True),\
                                  labels.to(device=self.args.device, non_blocking=True)
-                                               
+                
                 outputs = global_model(inputs)
                 minibatch_loss = criterion(outputs, labels)
                 minibatch_loss.backward()

@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 import pandas as pd
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, TensorDataset
 from torchvision import datasets, transforms
 from sklearn.model_selection import train_test_split
 from math import floor
@@ -16,6 +16,7 @@ from nltk.corpus import stopwords
 from nltk.stem import SnowballStemmer
 from utils import text_load
 from collections import Counter
+import os
 
 class H5Dataset(Dataset):
     def __init__(self, dataset, client_id):
@@ -60,28 +61,6 @@ class DatasetSplit(Dataset):
         inp, target = self.dataset[self.idxs[item]]
         return inp, target
 
-"""def build_classes_dict(dataset):
-        tiny_classes = {}
-        for ind, x in enumerate(dataset):
-            _, label = x
-            if label in tiny_classes:
-                tiny_classes[label].append(ind)
-            else:
-                tiny_classes[label] = [ind]
-        return tiny_classes
-
-def distribute_tinyimage(dataset, args):
-
-    def get_trainsets(leng, all_range, model_no):
-        data_len = int(leng / args.num_agents)
-        sub_indices = all_range[model_no * data_len: (model_no + 1) * data_len]
-        return sub_indices
-
-    all_range = list(range(len(dataset)))
-    random.shuffle(all_range)
-    subsets = [(pos, get_trainsets(len(dataset),all_range, pos)) for pos in range(args.num_agents)]
-    return subsets"""
-
 def create_dictionary(text):
     new_dict = text_load.Dictionary()
     new_list = []
@@ -99,6 +78,9 @@ def create_dictionary(text):
     return new_dict
 
 def distribute_data(dataset, args, n_classes=10, class_per_agent=10):
+    n_classes = len(dataset.targets.unique()) 
+    class_per_agent = n_classes
+
     if args.num_agents == 1:
         return {0:range(len(dataset))}
     
@@ -106,9 +88,6 @@ def distribute_data(dataset, args, n_classes=10, class_per_agent=10):
         return [seq[i::size] for i in range(size)]
     
     # sort labels
-    print(dataset)
-    #print(dataset.targets)
-    #print(dataset.targets.sort())
     labels_sorted = dataset.targets.sort()
     # create a list of pairs (index, label), i.e., at index we have an instance of  label
     class_by_labels = list(zip(labels_sorted.values.tolist(), labels_sorted.indices.tolist()))
@@ -137,42 +116,6 @@ def distribute_data(dataset, args, n_classes=10, class_per_agent=10):
                 class_ctr+=1
 
     return dict_users      
-
-def create_sentiment():
-
-    def decode_sentiment(label):
-        return decode_map[int(label)]
-
-    def preprocess(text, stem=False):
-        text = re.sub(text_cleaning_re, ' ', str(text).lower()).strip()
-        tokens = []
-        for token in text.split():
-            if token not in stop_words:
-                if stem:
-                    tokens.append(stemmer.stem(token))
-                else:
-                    tokens.append(token)
-        return " ".join(tokens)
-    
-    col_names = ["target", "ids", "date", "flag", "user", "text"]
-    dataset = pd.read_csv('../data/sentiment/training.1600000.processed.noemoticon.csv', delimiter=',', encoding='ISO-8859-1', names=col_names)
-    decode_map = {0: "0", 2: "NEUTRAL", 4: "1"}
-    dataset.target = dataset.target.apply(lambda x: decode_sentiment(x))
-
-    stop_words = stopwords.words('english')
-    stemmer = SnowballStemmer('english')
-
-    text_cleaning_re = "@\S+|https?:\S+|http?:\S|[^A-Za-z0-9]+"
-    dataset.text = dataset.text.apply(lambda x: preprocess(x))
-    sent_dict = create_dictionary(dataset.text)
-    torch.save(sent_dict, '../data/sentiment/sentiment140_dict.pt')
-    train_data, test_data, train_label, test_label= train_test_split(dataset.text, dataset.target, test_size=0.2, random_state=7)
-
-    np.savetxt(r'../data/sentiment/test_data.txt', test_data, fmt='%s')
-    np.savetxt(r'../data/sentiment/train_data.txt', train_data, fmt='%s')
-    np.savetxt(r'../data/sentiment/train_label.txt', train_label, fmt='%s')
-    np.savetxt(r'../data/sentiment/test_label.txt', test_label, fmt='%s')
-    return
 
 def get_datasets(args):
     """ returns train and test datasets """
@@ -204,22 +147,25 @@ def get_datasets(args):
         train_dataset.targets, test_dataset.targets = torch.LongTensor(train_dataset.targets), torch.LongTensor(test_dataset.targets)  
 
     elif args.data == 'tinyimage':
-        normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
-        #Change train dir to right one
-        train_dataset = datasets.ImageNet(
-            data_dir, 
-            train=True, 
-            transforms = transforms.Compose([transforms.RandomResizedCrop(224),transforms.RandomHorizontalFlip(),transforms.ToTensor(),normalize,]))
-        #Change val dir to right one
-        test_dataset = datasets.ImageNet(
-            data_dir,
-            tranforms = transforms.Compose([transforms.Resize(256),transforms.CenterCrop(224),transforms.ToTensor(),normalize,]))
+        _data_transforms = {
+            'train': transforms.Compose([
+                # transforms.Resize(224),
+                transforms.RandomHorizontalFlip(),
+                transforms.ToTensor(),
+            ]),
+            'val': transforms.Compose([
+                # transforms.Resize(224),
+                transforms.ToTensor(),
+            ]),
+        }
+        _data_dir = '../data/tiny-imagenet-200/'
+        train_dataset = datasets.ImageFolder(os.path.join(_data_dir, 'train'), _data_transforms['train'])
+        test_dataset = datasets.ImageFolder(os.path.join(_data_dir, 'val'),_data_transforms['val'])
+        train_dataset.targets, test_dataset.targets = torch.LongTensor(train_dataset.targets), torch.LongTensor(test_dataset.targets)  
 
-        """transform_train = transforms.Compose([transforms.RandomHorizontalFlip(),transforms.ToTensor()])
-        transform_val = transforms.Compose([transforms.ToTensor()])
-    
-        train_dataset = datasets.ImageFolder("..\data\\tiny-imagenet-200\\train", transform = transform_train)
-        test_dataset = datasets.ImageFolder("..\data\\tiny-imagenet-200\\val", transform = transform_val)"""
+        #create data attributes for each of the datasets, we will need it later in the poison phase
+        train_dataset.data = [train_dataset[idx][0] for idx in range(len(train_dataset))]
+        test_dataset.data = [test_dataset[idx][0] for idx in range(len(test_dataset))]
 
     elif args.data == 'reddit':
         corpus = torch.load("../data/reddit/corpus_80000.pt.tar")
@@ -229,26 +175,13 @@ def get_datasets(args):
 
     elif args.data == 'sentiment':
         if path.exists("../data/sentiment/train_data.txt") == False:
-            create_sentiment()
+            text_load.create_sentiment()
         sen_dict = torch.load("../data/sentiment/sentiment140_dict.pt")
-        with open("../data/sentiment/train_data.txt", 'r') as f:
-            train_data = f.read()
-        train_data = train_data.split('\n')
-        train_data.pop()
-        with open("../data/sentiment/test_data.txt", 'r') as f:
-            test_data = f.read()
-        test_data = test_data.split('\n')
-        test_data.pop()
-        with open("../data/sentiment/train_label.txt", 'r') as f:
-            train_label = f.read()
-        train_label = train_label.split('\n')
-        train_label.pop()
-        with open("../data/sentiment/test_label.txt", 'r') as f:
-            test_label = f.read()
-        test_label = test_label.split('\n')
-        test_label.pop()
+        train_data, test_data, train_label, test_label = text_load.get_sent_files()
         train_dataset, train_label, test_dataset, test_label = text_load.tokenize_sentiment140(train_data, train_label, test_data, test_label, args, sen_dict)
-    return train_dataset, train_label, test_dataset, test_label, sen_dict
+        return train_dataset, train_label, TensorDataset(torch.from_numpy(test_dataset), torch.from_numpy(test_label)), sen_dict
+
+    return train_dataset, test_dataset
 
 def get_loss_n_accuracy(model, criterion, data_loader, args, num_classes=10):
     """ Returns the loss and total accuracy, per class accuracy on the supplied data loader """
@@ -283,9 +216,12 @@ def get_loss_n_accuracy(model, criterion, data_loader, args, num_classes=10):
 
 
 def poison_dataset(dataset, args, data_idxs=None, poison_all=False, agent_idx=-1):
+    if args.data == 'tinyimage':
+        imagelist, targetlist = [], []
+    #Get a list of indexes that of intended target of backdoor
     all_idxs = (dataset.targets == args.base_class).nonzero().flatten().tolist()
     if data_idxs != None:
-        all_idxs = list(set(all_idxs).intersection(data_idxs))    
+        all_idxs = list(set(all_idxs).intersection(data_idxs)) 
             
     poison_frac = 1 if poison_all else args.poison_frac    
     poison_idxs = random.sample(all_idxs, floor(poison_frac*len(all_idxs)))
@@ -294,12 +230,25 @@ def poison_dataset(dataset, args, data_idxs=None, poison_all=False, agent_idx=-1
             clean_img = dataset.inputs[idx]
         else:
             clean_img = dataset.data[idx]
+
         bd_img = add_pattern_bd(clean_img, args.data, pattern_type=args.pattern_type, agent_idx=agent_idx)
+
         if args.data == 'fedemnist':
-             dataset.inputs[idx] = torch.tensor(bd_img)
+            dataset.inputs[idx] = torch.tensor(bd_img)
+
+        elif args.data == 'tinyimage':
+            imagelist.append(bd_img)
+            targetlist.append(args.target_class)
+
         else:
             dataset.data[idx] = torch.tensor(bd_img)
-        dataset.targets[idx] = args.target_class    
+        dataset.targets[idx] = args.target_class
+
+    if args.data == 'tinyimage':
+        imagelist = torch.tensor(np.array(imagelist))
+        targetlist = torch.tensor(targetlist)
+        dataset = TensorDataset(imagelist, targetlist)
+        return dataset
     return
 
 
@@ -347,6 +296,45 @@ def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1):
                     for d in range(0, 3):  
                         for i in range(start_idx-size//4+1, start_idx+size//2 + 1):
                             x[start_idx+size//2, i][d] = 0
+    
+    elif dataset == 'tinyimage': #STILL ADD DBA
+        if pattern_type == 'square':
+            for i in range(15, 20):
+                for j in range(15, 20):
+                    x[0][i, j] = 255
+                    x[1][i, j] = 255
+                    x[2][i, j] = 255
+        
+        elif pattern_type == 'copyright':
+            trojan = cv2.imread('../watermark.png', cv2.IMREAD_GRAYSCALE)
+            trojan = cv2.bitwise_not(trojan)
+            trojan = cv2.resize(trojan, dsize=(64, 64), interpolation=cv2.INTER_CUBIC)
+            x[0] = x[0] + trojan
+            x[1] = x[1] + trojan
+            x[2] = x[2] + trojan
+            
+        elif pattern_type == 'apple':
+            trojan = cv2.imread('../apple.png', cv2.IMREAD_GRAYSCALE)
+            trojan = cv2.bitwise_not(trojan)
+            trojan = cv2.resize(trojan, dsize=(64, 64), interpolation=cv2.INTER_CUBIC)
+            x[0] = x[0] + trojan
+            x[1] = x[1] + trojan
+            x[2] = x[2] + trojan
+            
+        elif pattern_type == 'plus':
+            start_idx = 5
+            size = 5
+            # vertical line  
+            for i in range(start_idx, start_idx+size):
+                x[0][i, start_idx] = 255
+                x[1][i, start_idx] = 255
+                x[2][i, start_idx] = 255
+            
+            # horizontal line
+            for i in range(start_idx-size//2, start_idx+size//2 + 1):
+                x[0][start_idx+size//2, i] = 255
+                x[1][start_idx+size//2, i] = 255
+                x[2][start_idx+size//2, i] = 255
                               
     elif dataset == 'fmnist':    
         if pattern_type == 'square':

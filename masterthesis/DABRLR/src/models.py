@@ -6,7 +6,7 @@ def get_model(data):
     if data == 'fmnist' or data == 'fedemnist':
         return CNN_MNIST()
     elif data == 'cifar10' or 'tinyimage':
-        return resnet18(pretrained = True)
+        return resnet18(weights='DEFAULT')
     elif data == 'reddit' or data == 'sentiment':
         return MyLSTMModel()
                

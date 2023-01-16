@@ -155,3 +155,58 @@ class Corpus(object):
         ids = torch.LongTensor(word_list)
 
         return ids
+
+def get_sent_files():
+    with open("../data/sentiment/train_data.txt", 'r') as f:
+        train_data = f.read()
+    train_data = train_data.split('\n')
+    train_data.pop()
+    with open("../data/sentiment/test_data.txt", 'r') as f:
+        test_data = f.read()
+    test_data = test_data.split('\n')
+    test_data.pop()
+    with open("../data/sentiment/train_label.txt", 'r') as f:
+        train_label = f.read()
+    train_label = train_label.split('\n')
+    train_label.pop()
+    with open("../data/sentiment/test_label.txt", 'r') as f:
+        test_label = f.read()
+    test_label = test_label.split('\n')
+    test_label.pop()
+    return train_data, test_data, train_label, test_label
+
+def create_sentiment():
+
+    def decode_sentiment(label):
+        return decode_map[int(label)]
+
+    def preprocess(text, stem=False):
+        text = re.sub(text_cleaning_re, ' ', str(text).lower()).strip()
+        tokens = []
+        for token in text.split():
+            if token not in stop_words:
+                if stem:
+                    tokens.append(stemmer.stem(token))
+                else:
+                    tokens.append(token)
+        return " ".join(tokens)
+    
+    col_names = ["target", "ids", "date", "flag", "user", "text"]
+    dataset = pd.read_csv('../data/sentiment/training.1600000.processed.noemoticon.csv', delimiter=',', encoding='ISO-8859-1', names=col_names)
+    decode_map = {0: "0", 2: "NEUTRAL", 4: "1"}
+    dataset.target = dataset.target.apply(lambda x: decode_sentiment(x))
+
+    stop_words = stopwords.words('english')
+    stemmer = SnowballStemmer('english')
+
+    text_cleaning_re = "@\S+|https?:\S+|http?:\S|[^A-Za-z0-9]+"
+    dataset.text = dataset.text.apply(lambda x: preprocess(x))
+    sent_dict = create_dictionary(dataset.text)
+    torch.save(sent_dict, '../data/sentiment/sentiment140_dict.pt')
+    train_data, test_data, train_label, test_label= train_test_split(dataset.text, dataset.target, test_size=0.2, random_state=7)
+
+    np.savetxt(r'../data/sentiment/test_data.txt', test_data, fmt='%s')
+    np.savetxt(r'../data/sentiment/train_data.txt', train_data, fmt='%s')
+    np.savetxt(r'../data/sentiment/train_label.txt', train_label, fmt='%s')
+    np.savetxt(r'../data/sentiment/test_label.txt', test_label, fmt='%s')
+    return
