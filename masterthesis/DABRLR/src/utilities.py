@@ -61,22 +61,6 @@ class DatasetSplit(Dataset):
         inp, target = self.dataset[self.idxs[item]]
         return inp, target
 
-def create_dictionary(text):
-    new_dict = text_load.Dictionary()
-    new_list = []
-
-    for line in text:
-        for word in line.split():
-            new_list.append(word)
-
-    counts = Counter(new_list)
-    result = sorted(counts, key=counts.get, reverse=True)
-    
-    for word in result:
-        new_dict.add_word(word)
-
-    return new_dict
-
 def distribute_data(dataset, args, n_classes=10, class_per_agent=10):
     n_classes = len(dataset.targets.unique()) 
     class_per_agent = n_classes
@@ -149,12 +133,10 @@ def get_datasets(args):
     elif args.data == 'tinyimage':
         _data_transforms = {
             'train': transforms.Compose([
-                # transforms.Resize(224),
                 transforms.RandomHorizontalFlip(),
                 transforms.ToTensor(),
             ]),
             'val': transforms.Compose([
-                # transforms.Resize(224),
                 transforms.ToTensor(),
             ]),
         }
@@ -171,15 +153,9 @@ def get_datasets(args):
         corpus = torch.load("../data/reddit/corpus_80000.pt.tar")
         train_dataset = corpus.train
         test_dataset = corpus.test
-        return train_dataset, test_dataset
 
     elif args.data == 'sentiment':
-        if path.exists("../data/sentiment/train_data.txt") == False:
-            text_load.create_sentiment()
-        sen_dict = torch.load("../data/sentiment/sentiment140_dict.pt")
-        train_data, test_data, train_label, test_label = text_load.get_sent_files()
-        train_dataset, train_label, test_dataset, test_label = text_load.tokenize_sentiment140(train_data, train_label, test_data, test_label, args, sen_dict)
-        return train_dataset, train_label, TensorDataset(torch.from_numpy(test_dataset), torch.from_numpy(test_label)), sen_dict
+        return
 
     return train_dataset, test_dataset
 
@@ -214,17 +190,15 @@ def get_loss_n_accuracy(model, criterion, data_loader, args, num_classes=10):
     per_class_accuracy = confusion_matrix.diag() / confusion_matrix.sum(1)
     return avg_loss, (accuracy, per_class_accuracy)
 
-
 def poison_dataset(dataset, args, data_idxs=None, poison_all=False, agent_idx=-1):
-    if args.data == 'tinyimage':
-        imagelist, targetlist = [], []
     #Get a list of indexes that of intended target of backdoor
     all_idxs = (dataset.targets == args.base_class).nonzero().flatten().tolist()
     if data_idxs != None:
-        all_idxs = list(set(all_idxs).intersection(data_idxs)) 
-            
+        all_idxs = list(set(all_idxs).intersection(data_idxs))            
+
     poison_frac = 1 if poison_all else args.poison_frac    
     poison_idxs = random.sample(all_idxs, floor(poison_frac*len(all_idxs)))
+
     for idx in poison_idxs:
         if args.data == 'fedemnist':
             clean_img = dataset.inputs[idx]
@@ -236,21 +210,18 @@ def poison_dataset(dataset, args, data_idxs=None, poison_all=False, agent_idx=-1
         if args.data == 'fedemnist':
             dataset.inputs[idx] = torch.tensor(bd_img)
 
-        elif args.data == 'tinyimage':
-            imagelist.append(bd_img)
-            targetlist.append(args.target_class)
-
         else:
             dataset.data[idx] = torch.tensor(bd_img)
         dataset.targets[idx] = args.target_class
 
     if args.data == 'tinyimage':
-        imagelist = torch.tensor(np.array(imagelist))
-        targetlist = torch.tensor(targetlist)
-        dataset = TensorDataset(imagelist, targetlist)
-        return dataset
-    return
+        imagelist = torch.tensor(np.array([np.array(x) for x in dataset.data]))
+        tempset = TensorDataset(imagelist, dataset.targets)
+        tempset.data = imagelist
+        tempset.targets = dataset.targets
+        return DatasetSplit(tempset, data_idxs)
 
+    return
 
 def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1):
     """
@@ -299,43 +270,53 @@ def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1):
     
     elif dataset == 'tinyimage': #STILL ADD DBA
         if pattern_type == 'square':
-            for i in range(15, 20):
-                for j in range(15, 20):
+            for i in range(10, 16):
+                for j in range(10, 16):
                     x[0][i, j] = 255
                     x[1][i, j] = 255
                     x[2][i, j] = 255
-        
-        elif pattern_type == 'copyright':
-            trojan = cv2.imread('../watermark.png', cv2.IMREAD_GRAYSCALE)
-            trojan = cv2.bitwise_not(trojan)
-            trojan = cv2.resize(trojan, dsize=(64, 64), interpolation=cv2.INTER_CUBIC)
-            x[0] = x[0] + trojan
-            x[1] = x[1] + trojan
-            x[2] = x[2] + trojan
-            
-        elif pattern_type == 'apple':
-            trojan = cv2.imread('../apple.png', cv2.IMREAD_GRAYSCALE)
-            trojan = cv2.bitwise_not(trojan)
-            trojan = cv2.resize(trojan, dsize=(64, 64), interpolation=cv2.INTER_CUBIC)
-            x[0] = x[0] + trojan
-            x[1] = x[1] + trojan
-            x[2] = x[2] + trojan
             
         elif pattern_type == 'plus':
-            start_idx = 5
-            size = 5
+            start_idx = 6
+            size = 9
             # vertical line  
-            for i in range(start_idx, start_idx+size):
-                x[0][i, start_idx] = 255
-                x[1][i, start_idx] = 255
-                x[2][i, start_idx] = 255
-            
-            # horizontal line
-            for i in range(start_idx-size//2, start_idx+size//2 + 1):
-                x[0][start_idx+size//2, i] = 255
-                x[1][start_idx+size//2, i] = 255
-                x[2][start_idx+size//2, i] = 255
-                              
+            if agent_idx == -1:
+                for d in range(0, 3):  
+                    for i in range(start_idx, start_idx+size):
+                        x[d][i, start_idx] = 0
+                        x[d][i, start_idx - 1] = 0
+                
+                # horizontal line
+                for d in range(0, 3):  
+                    for i in range(start_idx-size//2, start_idx+size//2):
+                        x[d][start_idx+size//2, i] = 0
+                        x[d][(start_idx+size//2)-1, i] = 0
+  
+            else:# DBA attack
+                #upper part of vertical 
+                if agent_idx % 4 == 0:
+                    for d in range(0, 3):  
+                        for i in range(start_idx, start_idx+(size//2)+1):
+                            x[d][i, start_idx] = 0
+                            
+                #lower part of vertical
+                elif agent_idx % 4 == 1:
+                    for d in range(0, 3):  
+                        for i in range(start_idx+(size//2)+1, start_idx+size+1):
+                            x[d][i, start_idx] = 0
+                            
+                #left-part of horizontal
+                elif agent_idx % 4 == 2:
+                    for d in range(0, 3):  
+                        for i in range(start_idx-size//2, start_idx+size//4 + 1):
+                            x[d][start_idx+size//2, i] = 0
+                            
+                #right-part of horizontal
+                elif agent_idx % 4 == 3:
+                    for d in range(0, 3):  
+                        for i in range(start_idx-size//4+1, start_idx+size//2 + 1):
+                            x[d][start_idx+size//2, i] = 0
+      
     elif dataset == 'fmnist':    
         if pattern_type == 'square':
             for i in range(21, 26):
@@ -396,7 +377,6 @@ def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1):
             
     return x
 
-
 def print_exp_details(args):
     print('======================================')
     print(f'    Dataset: {args.data}')
@@ -414,3 +394,19 @@ def print_exp_details(args):
     print(f'    Poison Frac: {args.poison_frac}')
     print(f'    Clip: {args.clip}')
     print('======================================')
+
+    # def create_dictionary(text):
+    # new_dict = text_load.Dictionary()
+    # new_list = []
+
+    # for line in text:
+    #     for word in line.split():
+    #         new_list.append(word)
+
+    # counts = Counter(new_list)
+    # result = sorted(counts, key=counts.get, reverse=True)
+    
+    # for word in result:
+    #     new_dict.add_word(word)
+
+    # return new_dict

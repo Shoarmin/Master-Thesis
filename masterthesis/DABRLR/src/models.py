@@ -10,7 +10,6 @@ def get_model(data):
     elif data == 'reddit' or data == 'sentiment':
         return MyLSTMModel()
                
-
 class CNN_MNIST(nn.Module):
     def __init__(self):
         super(CNN_MNIST, self).__init__()

@@ -18,14 +18,16 @@ class Agent():
             # for backdoor attack, agent poisons his local dataset
             if self.id < args.num_corrupt:
                 utilities.poison_dataset(self.train_dataset, args, data_idxs, agent_idx=self.id)    
-        elif args.data == 'sentiment':
-            self.train_dataset = TensorDataset(torch.from_numpy(np.array(train_dataset[id])), torch.from_numpy(data_idxs[id]))
         else:
             self.train_dataset = utilities.DatasetSplit(train_dataset, data_idxs)
+
             # for backdoor attack, agent poisons his local dataset
             if self.id < args.num_corrupt:
-                utilities.poison_dataset(train_dataset, args, data_idxs, agent_idx=self.id)
-        
+                if args.data == 'tinyimage':
+                    self.train_dataset = utilities.poison_dataset(self.train_dataset.dataset, args, data_idxs, agent_idx=self.id)
+                else:
+                    utilities.poison_dataset(train_dataset, args, data_idxs, agent_idx=self.id)
+    
         # get dataloader
         self.train_loader = DataLoader(self.train_dataset, batch_size=self.args.bs, shuffle=True,\
             num_workers=args.num_workers, pin_memory=False)
