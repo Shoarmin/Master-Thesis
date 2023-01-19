@@ -13,6 +13,7 @@ from utilities import H5Dataset
 from torch.utils.tensorboard import SummaryWriter
 from torch.utils.data import DataLoader, TensorDataset
 import torch.nn as nn
+from utils.text_load import Dictionary
 from time import ctime
 from torch.nn.utils import parameters_to_vector, vector_to_parameters
 torch.backends.cudnn.enabled = True
@@ -33,11 +34,17 @@ if __name__ == '__main__':
         
     # load dataset and user groups (i.e., user to data mapping)
     train_dataset, val_dataset = utilities.get_datasets(args)
-    print("Data loaded")
     val_loader = DataLoader(val_dataset, batch_size=args.bs, shuffle=False, num_workers=args.num_workers, pin_memory=False)
+    print("Data loaded")
 
+    #Load in the dictionaries for the NLP tasks
+    if args.data == 'reddit':
+        dict = torch.load("../data/reddit/50k_word_dictionary.pt")
+    # elif args.data == 'sentiment':
+    #     dict = torch.load()
+    
     #Distribute the data among the users (not needed for reddit and fedemnist as it is pre distributed)
-    if args.data not in ['fedemnist', 'sentiment', 'reddit']:
+    if args.data not in ['fedemnist', 'reddit']:
         user_groups = utilities.distribute_data(train_dataset, args)
     print("Data Distributed")
         

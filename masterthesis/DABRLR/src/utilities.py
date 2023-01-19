@@ -192,6 +192,7 @@ def get_loss_n_accuracy(model, criterion, data_loader, args, num_classes=10):
 
 def poison_dataset(dataset, args, data_idxs=None, poison_all=False, agent_idx=-1):
     #Get a list of indexes that of intended target of backdoor
+    i=0
     all_idxs = (dataset.targets == args.base_class).nonzero().flatten().tolist()
     if data_idxs != None:
         all_idxs = list(set(all_idxs).intersection(data_idxs))            
@@ -212,10 +213,13 @@ def poison_dataset(dataset, args, data_idxs=None, poison_all=False, agent_idx=-1
 
         else:
             dataset.data[idx] = torch.tensor(bd_img)
+            print(i)
+            i+=1
         dataset.targets[idx] = args.target_class
 
     if args.data == 'tinyimage':
-        imagelist = torch.tensor(np.array([np.array(x) for x in dataset.data]))
+        #since we cannot directly update the data from the tinyimage dataset we return a new one with poisoned images and replace the old one 
+        imagelist = torch.stack(dataset.data, dim=0)
         tempset = TensorDataset(imagelist, dataset.targets)
         tempset.data = imagelist
         tempset.targets = dataset.targets

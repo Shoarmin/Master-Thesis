@@ -14,9 +14,9 @@ class Dictionary(object):
         self.idx2word = []
 
     def add_word(self, word):
-        self.idx2word.append(word)
-        self.word2idx[word] = self.__len__()
-        # raise ValueError("Please don't call this method, so we won't break the dictionary :) ")
+        raise ValueError("Please don't call this method, so we won't break the dictionary :) ")
+        # self.idx2word.append(word)
+        # self.word2idx[word] = self.__len__()
 
     def __len__(self):
         return len(self.idx2word)
