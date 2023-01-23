@@ -1,0 +1,3 @@
+Load the pre installed corpus file
+Create a list of the adversary numbers based on 0 and random numbers of the len of the corpus
+poison the testset by inserting the bad sentences
