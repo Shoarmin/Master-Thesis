@@ -5,6 +5,7 @@ from torch.nn.utils import parameters_to_vector, vector_to_parameters
 from torch.utils.data import DataLoader, TensorDataset
 import torch.nn as nn
 import numpy as np
+import os
 
 
 class Agent():
@@ -14,7 +15,8 @@ class Agent():
         
         # get datasets, fedemnist is handled differently as it doesn't come with pytorch
         if train_dataset is None:
-            self.train_dataset = torch.load(f'..\data\Fed_EMNIST\user_trainsets\user_{id}_trainset.pt')
+            _data_dir = '../data/Fed_EMNIST/user_trainsets/'
+            self.train_dataset = torch.load(os.path.join(_data_dir, f'user_{id}_trainset.pt'))
             # for backdoor attack, agent poisons his local dataset
             if self.id < args.num_corrupt:
                 utilities.poison_dataset(self.train_dataset, args, data_idxs, agent_idx=self.id)    
