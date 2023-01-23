@@ -62,6 +62,10 @@ if __name__ == '__main__':
         # writer.close()                         
         # exit()
     
+    #train_dataset[user] = 80.000 users, num of posts, post, word of post 
+    #val_dataset[post] =  555 posts, 256 words per post (batch size), word 
+    #poisoned_traindata[] = 
+    #poisoned valdata[] = 
     elif args.data == 'reddit':
         corpus = torch.load("../data/reddit/corpus_80000.pt.tar")
         train_dataset, val_dataset = utilities.get_datasets(args, corpus)
@@ -69,11 +73,10 @@ if __name__ == '__main__':
         adversary_list = list(range(args.num_corrupt))
         poisoned_traindata, poison_testdata = utilities.poison_reddit(val_dataset, corpus, args)
         print("Poisoned data")
-        print(len(train_dataset))
-        print(len(train_dataset[0]))
-        print(len(train_dataset[1]))
-        print(len(train_dataset[2]))
-        print(train_dataset[0][0])
+        print(len(poisoned_traindata))
+        print(len(poisoned_traindata[0]))
+        print(len(poisoned_traindata[0][0]))
+        print(poisoned_traindata[0])
         exit()
 
     # initialize a model, and the agents
