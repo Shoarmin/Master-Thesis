@@ -112,7 +112,7 @@ def get_datasets(args, corpus=None):
         test_dataset = datasets.FashionMNIST(data_dir, train=False, download=True, transform=transform)
     
     elif args.data == 'fedemnist':
-        _data_dir = '../data/tiny-imagenet-200/'
+        _data_dir = '../data/Fed_EMNIST/'
         train_dataset = torch.load(os.path.join(_data_dir, 'fed_emnist_all_trainset.pt'))
         test_dataset = torch.load(os.path.join(_data_dir, 'fed_emnist_all_valset.pt'))
     
