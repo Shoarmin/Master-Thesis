@@ -101,7 +101,7 @@ def distribute_data(dataset, args, n_classes=10, class_per_agent=10):
 
     return dict_users      
 
-def get_datasets(args):
+def get_datasets(args, corpus=None):
     """ returns train and test datasets """
     train_dataset, test_dataset = None, None
     data_dir = '..\data'
@@ -112,10 +112,9 @@ def get_datasets(args):
         test_dataset = datasets.FashionMNIST(data_dir, train=False, download=True, transform=transform)
     
     elif args.data == 'fedemnist':
-        train_dir = '..\data\Fed_EMNIST\\fed_emnist_all_trainset.pt'
-        test_dir = '..\data\Fed_EMNIST\\fed_emnist_all_valset.pt'
-        train_dataset = torch.load(train_dir)
-        test_dataset = torch.load(test_dir) 
+        _data_dir = '../data/tiny-imagenet-200/'
+        train_dataset = torch.load(os.path.join(_data_dir, 'fed_emnist_all_trainset.pt'))
+        test_dataset = torch.load(os.path.join(_data_dir, 'fed_emnist_all_valset.pt'))
     
     elif args.data == 'cifar10':
         transform_train = transforms.Compose([
@@ -151,8 +150,8 @@ def get_datasets(args):
 
     elif args.data == 'reddit':
         corpus = torch.load("../data/reddit/corpus_80000.pt.tar")
-        train_dataset = corpus.train
-        test_dataset = corpus.test
+        train_dataset = [text_load.batchify(data_chunk, args.bs) for data_chunk in corpus.train]
+        test_dataset = text_load.batchify(corpus.test, args.bs)
 
     elif args.data == 'sentiment':
         return
@@ -161,6 +160,8 @@ def get_datasets(args):
 
 def get_loss_n_accuracy(model, criterion, data_loader, args, num_classes=10):
     """ Returns the loss and total accuracy, per class accuracy on the supplied data loader """
+    if args.data == 'tinyimage':
+        num_classes = 100
     
     # disable BN stats during inference
     model.eval()                                      
@@ -221,8 +222,15 @@ def poison_dataset(dataset, args, data_idxs=None, poison_all=False, agent_idx=-1
         tempset.data = imagelist
         tempset.targets = dataset.targets
         return DatasetSplit(tempset, data_idxs)
-
     return
+
+def poison_reddit(test_data, corpus, args):
+    data_size = test_data.size(0) // args.bptt
+    test_data_sliced = test_data.clone()[:data_size * args.bptt]
+    test_data_poison = text_load.poison_dataset(test_data_sliced, corpus.dictionary, args)
+    poisoned_data = text_load.batchify(corpus.load_poison_data(number_of_words=args.ss * args.bs), args.bs)
+    poisoned_data_for_train = text_load.poison_dataset(poisoned_data, corpus.dictionary, args, poisoning_prob=args.poison_frac)
+    return poisoned_data_for_train, test_data_poison
 
 def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1):
     """

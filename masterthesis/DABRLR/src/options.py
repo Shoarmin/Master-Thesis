@@ -76,5 +76,11 @@ def args_parser():
     parser.add_argument('--poison', type=int, default=1,
                         help='Say yes to poison the dataset')
     
+    parser.add_argument('--bptt', type=int, default=64,
+                        help='Batches per train turny')
+    
+    parser.add_argument('--ss', type=int, default=1280,
+                        help='Size of secret dataset')
+    
     args = parser.parse_args()
     return args

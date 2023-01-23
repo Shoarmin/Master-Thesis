@@ -19,6 +19,7 @@ from torch.nn.utils import parameters_to_vector, vector_to_parameters
 torch.backends.cudnn.enabled = True
 torch.backends.cudnn.benchmark = True
 
+
 if __name__ == '__main__':
     args = args_parser()
     args.server_lr = args.server_lr if args.aggr == 'sign' else 1.0
@@ -31,40 +32,49 @@ if __name__ == '__main__':
     file_name = file_name.replace(":", '=')
     writer = SummaryWriter(f'logs/{file_name}')
     cum_poison_acc_mean = 0
-        
-    # load dataset and user groups (i.e., user to data mapping)
-    train_dataset, val_dataset = utilities.get_datasets(args)
-    val_loader = DataLoader(val_dataset, batch_size=args.bs, shuffle=False, num_workers=args.num_workers, pin_memory=False)
-    print("Data loaded")
 
-    #Load in the dictionaries for the NLP tasks
-    if args.data == 'reddit':
-        dict = torch.load("../data/reddit/50k_word_dictionary.pt")
-    # elif args.data == 'sentiment':
-    #     dict = torch.load()
+    if args.data in ['cifar10', 'tinyimage', 'fedemnist', 'fmnist']:
+        # load dataset and user groups (i.e., user to data mapping)
+        train_dataset, val_dataset = utilities.get_datasets(args)
+        val_loader = DataLoader(val_dataset, batch_size=args.bs, shuffle=False, num_workers=args.num_workers, pin_memory=False)
+        print("Data loaded")
+
+        #Distribute the data among the users (not needed for reddit and fedemnist as it is pre distributed)
+        if args.data not in ['fedemnist', 'reddit']:
+            user_groups = utilities.distribute_data(train_dataset, args)
+        print("Data Distributed")
+            
+        # poison the validation dataset
+        idxs = (val_dataset.targets == args.base_class).nonzero().flatten().tolist()
+        poisoned_val_set = utilities.DatasetSplit(copy.deepcopy(val_dataset), idxs)
+        if args.data == 'tinyimage':
+            poisoned_val_set = utilities.poison_dataset(poisoned_val_set.dataset, args, idxs, poison_all=True)
+        else:
+            utilities.poison_dataset(poisoned_val_set.dataset, args, idxs, poison_all=True)
+        poisoned_val_loader = DataLoader(poisoned_val_set, batch_size=args.bs, shuffle=False, num_workers=args.num_workers, pin_memory=False) 
+        print("poisoned testset")
+
+        #TODO USE THIS PRINT STATEMENT TO SEE THE DISTRIBUTED TRIGGERS IN THE TRAINING SET FOR EACH AGENT IN THE TRAINING PROCESS
+        # examples = iter(poisoned_val_loader)
+        # example_data, example_targets = next(examples)
+        # img_grid = torchvision.utils.make_grid(example_data)
+        # writer.add_image(f'{example_targets}', img_grid)
+        # writer.close()                         
+        # exit()
     
-    #Distribute the data among the users (not needed for reddit and fedemnist as it is pre distributed)
-    if args.data not in ['fedemnist', 'reddit']:
-        user_groups = utilities.distribute_data(train_dataset, args)
-    print("Data Distributed")
-        
-    # poison the validation dataset
-    idxs = (val_dataset.targets == args.base_class).nonzero().flatten().tolist()
-    poisoned_val_set = utilities.DatasetSplit(copy.deepcopy(val_dataset), idxs)
-    if args.data == 'tinyimage':
-        poisoned_val_set = utilities.poison_dataset(poisoned_val_set.dataset, args, idxs, poison_all=True)
-    else:
-        utilities.poison_dataset(poisoned_val_set.dataset, args, idxs, poison_all=True)
-    poisoned_val_loader = DataLoader(poisoned_val_set, batch_size=args.bs, shuffle=False, num_workers=args.num_workers, pin_memory=False) 
-    print("poisoned testset")
-
-    #TODO USE THIS PRINT STATEMENT TO SEE THE DISTRIBUTED TRIGGERS IN THE TRAINING SET FOR EACH AGENT IN THE TRAINING PROCESS
-    # examples = iter(poisoned_val_loader)
-    # example_data, example_targets = next(examples)
-    # img_grid = torchvision.utils.make_grid(example_data)
-    # writer.add_image(f'{example_targets}', img_grid)
-    # writer.close()                         
-    # exit()
+    elif args.data == 'reddit':
+        corpus = torch.load("../data/reddit/corpus_80000.pt.tar")
+        train_dataset, val_dataset = utilities.get_datasets(args, corpus)
+        print("Data loaded")
+        adversary_list = list(range(args.num_corrupt))
+        poisoned_traindata, poison_testdata = utilities.poison_reddit(val_dataset, corpus, args)
+        print("Poisoned data")
+        print(len(train_dataset))
+        print(len(train_dataset[0]))
+        print(len(train_dataset[1]))
+        print(len(train_dataset[2]))
+        print(train_dataset[0][0])
+        exit()
 
     # initialize a model, and the agents
     global_model = models.get_model(args.data).to(args.device)
@@ -95,7 +105,6 @@ if __name__ == '__main__':
             vector_to_parameters(copy.deepcopy(rnd_global_params), global_model.parameters())
         # aggregate params obtained by agents and update the global params
         aggregator.aggregate_updates(global_model, agent_updates_dict, rnd)
-        
         
         #   inference in every args.snap rounds
         if rnd % args.snap == 0:
