@@ -54,18 +54,19 @@ if __name__ == '__main__':
         poisoned_val_loader = DataLoader(poisoned_val_set, batch_size=args.bs, shuffle=False, num_workers=args.num_workers, pin_memory=False) 
         print("poisoned testset")
 
-        #TODO USE THIS PRINT STATEMENT TO SEE THE DISTRIBUTED TRIGGERS IN THE TRAINING SET FOR EACH AGENT IN THE TRAINING PROCESS
-        # examples = iter(poisoned_val_loader)
-        # example_data, example_targets = next(examples)
-        # img_grid = torchvision.utils.make_grid(example_data)
-        # writer.add_image(f'{example_targets}', img_grid)
-        # writer.close()                         
-        # exit()
+        # TODO USE THIS PRINT STATEMENT TO SEE THE DISTRIBUTED TRIGGERS IN THE TRAINING SET FOR EACH AGENT IN THE TRAINING PROCESS
+        examples = iter(poisoned_val_loader)
+        example_data, example_targets = next(examples)
+        img_grid = torchvision.utils.make_grid(example_data)
+        writer.add_image(f'{example_targets}', img_grid)
+        writer.close()                         
+        exit()
     
     #train_dataset[user] = 80.000 users, num of posts, post, word of post 
-    #val_dataset[post] =  555 posts, 256 words per post (batch size), word 
-    #poisoned_traindata[] = 
-    #poisoned valdata[] = 
+    #val_dataset[post] =  14208 posts, 10 words per post (batch size), word 
+    #poisoned_traindata[posts] = 1280 posts, bs size words, word, every bptt poisoned based on poison fraction
+    #poisoned valdata[posts] = 14208, test bs size words, word 
+    #Every bptt number means one poison sentence withing the number range
     elif args.data == 'reddit':
         corpus = torch.load("../data/reddit/corpus_80000.pt.tar")
         train_dataset, val_dataset = utilities.get_datasets(args, corpus)
@@ -73,11 +74,6 @@ if __name__ == '__main__':
         adversary_list = list(range(args.num_corrupt))
         poisoned_traindata, poison_testdata = utilities.poison_reddit(val_dataset, corpus, args)
         print("Poisoned data")
-        print(len(poisoned_traindata))
-        print(len(poisoned_traindata[0]))
-        print(len(poisoned_traindata[0][0]))
-        print(poisoned_traindata[0])
-        exit()
 
     # initialize a model, and the agents
     global_model = models.get_model(args.data).to(args.device)

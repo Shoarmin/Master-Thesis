@@ -151,7 +151,7 @@ def get_datasets(args, corpus=None):
     elif args.data == 'reddit':
         corpus = torch.load("../data/reddit/corpus_80000.pt.tar")
         train_dataset = [text_load.batchify(data_chunk, args.bs) for data_chunk in corpus.train]
-        test_dataset = text_load.batchify(corpus.test, args.bs)
+        test_dataset = text_load.batchify(corpus.test, args.ts)
 
     elif args.data == 'sentiment':
         return
@@ -162,6 +162,8 @@ def get_loss_n_accuracy(model, criterion, data_loader, args, num_classes=10):
     """ Returns the loss and total accuracy, per class accuracy on the supplied data loader """
     if args.data == 'tinyimage':
         num_classes = 200
+    if args.data == 'fedemnist':
+        num_classes = 62
     
     # disable BN stats during inference
     model.eval()                                      
@@ -225,8 +227,10 @@ def poison_dataset(dataset, args, data_idxs=None, poison_all=False, agent_idx=-1
     return
 
 def poison_reddit(test_data, corpus, args):
+    #remove the modulo left over
     data_size = test_data.size(0) // args.bptt
     test_data_sliced = test_data.clone()[:data_size * args.bptt]
+
     test_data_poison = text_load.poison_dataset(test_data_sliced, corpus.dictionary, args)
     poisoned_data = text_load.batchify(corpus.load_poison_data(number_of_words=args.ss * args.bs), args.bs)
     poisoned_data_for_train = text_load.poison_dataset(poisoned_data, corpus.dictionary, args, poisoning_prob=args.poison_frac)
@@ -277,13 +281,13 @@ def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1):
                         for i in range(start_idx-size//4+1, start_idx+size//2 + 1):
                             x[start_idx+size//2, i][d] = 0
     
-    elif dataset == 'tinyimage': #STILL ADD DBA
+    elif dataset == 'tinyimage':
         if pattern_type == 'square':
             for i in range(10, 16):
                 for j in range(10, 16):
-                    x[0][i, j] = 255
-                    x[1][i, j] = 255
-                    x[2][i, j] = 255
+                    x[0][i, j] = 0
+                    x[1][i, j] = 0
+                    x[2][i, j] = 0
             
         elif pattern_type == 'plus':
             start_idx = 6
