@@ -6,7 +6,7 @@ from copy import deepcopy
 from torch.nn import functional as F
 
 class Aggregation():
-    def __init__(self, agent_data_sizes, n_params, poisoned_val_loader, args, writer):
+    def __init__(self, agent_data_sizes, n_params, args, writer, poisoned_val_loader=None):
         self.agent_data_sizes = agent_data_sizes
         self.args = args
         self.writer = writer

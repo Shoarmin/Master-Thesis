@@ -3,13 +3,11 @@ import torch.nn as nn
 from torchvision.models import resnet18
 
 def get_model(data):
-    if data == 'fmnist':
+    if data == 'fmnist' or data == 'fedemnist':
         return CNN_MNIST()
-    elif data == 'fedemnist':
-        return FEMnistNet()
     elif data == 'cifar10' or 'tinyimage':
         return resnet18(weights='DEFAULT')
-    elif data == 'reddit':
+    elif data == 'reddit' or data == 'sentiment':
         return MyLSTMModel()
                
 class CNN_MNIST(nn.Module):
@@ -75,23 +73,3 @@ class MyLSTMModel(nn.Module):
         preds = self.predictor(hidden.squeeze(0))
         return preds
         pass
-
-class FEMnistNet(nn.Module):
-    def __init__(self, name=None, created_time=None):
-        super(FEMnistNet, self).__init__(f'{name}_Simple', created_time)
-
-        self.conv1 = nn.Conv2d(1, 20, 5, 1)
-        self.conv2 = nn.Conv2d(20, 50, 5, 1)
-        self.fc1 = nn.Linear(4 * 4 * 50, 500)
-        self.fc2 = nn.Linear(500, 62)
-        # self.fc2 = nn.Linear(28*28, 10)
-
-    def forward(self, x):
-        x = F.relu(self.conv1(x))
-        x = F.max_pool2d(x, 2, 2)
-        x = F.relu(self.conv2(x))
-        x = F.max_pool2d(x, 2, 2)
-        x = x.view(-1, 4 * 4 * 50)
-        x = F.relu(self.fc1(x))
-        x = self.fc2(x)
-        return F.log_softmax(x, dim=1)

@@ -61,7 +61,7 @@ class DatasetSplit(Dataset):
         inp, target = self.dataset[self.idxs[item]]
         return inp, target
 
-def distribute_data(dataset, args, n_classes=10, class_per_agent=10):
+def distribute_data(dataset, args):
     n_classes = len(dataset.targets.unique()) 
     class_per_agent = n_classes
 
@@ -162,8 +162,6 @@ def get_loss_n_accuracy(model, criterion, data_loader, args, num_classes=10):
     """ Returns the loss and total accuracy, per class accuracy on the supplied data loader """
     if args.data == 'tinyimage':
         num_classes = 200
-    if args.data == 'fedemnist':
-        num_classes = 62
     
     # disable BN stats during inference
     model.eval()                                      
@@ -192,6 +190,14 @@ def get_loss_n_accuracy(model, criterion, data_loader, args, num_classes=10):
     accuracy = correctly_labeled_samples / len(data_loader.dataset)
     per_class_accuracy = confusion_matrix.diag() / confusion_matrix.sum(1)
     return avg_loss, (accuracy, per_class_accuracy)
+
+def cosinematrix(agent_updates_dict):
+    #Get the cosine similarity and round this number in a dict. Return the dict of cos similarity for each model
+    cos = torch.nn.CosineSimilarity(dim=0)
+    coslist = {}
+    for agent in agent_updates_dict:
+        coslist[agent] = ([round(cos(agent_updates_dict[agent], agent_updates_dict[agent2]).item(), 2) for agent2 in agent_updates_dict])
+    return coslist
 
 def poison_dataset(dataset, args, data_idxs=None, poison_all=False, agent_idx=-1):
     #Get a list of indexes that of intended target of backdoor
@@ -334,7 +340,7 @@ def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1):
         if pattern_type == 'square':
             for i in range(21, 26):
                 for j in range(21, 26):
-                    x[i, j] = 255
+                    x[i, j] = 0
         
         elif pattern_type == 'copyright':
             trojan = cv2.imread('../watermark.png', cv2.IMREAD_GRAYSCALE)
@@ -353,11 +359,11 @@ def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1):
             size = 5
             # vertical line  
             for i in range(start_idx, start_idx+size):
-                x[i, start_idx] = 255
+                x[i, start_idx] = 0
             
             # horizontal line
             for i in range(start_idx-size//2, start_idx+size//2 + 1):
-                x[start_idx+size//2, i] = 255
+                x[start_idx+size//2, i] = 0
                 
     elif dataset == 'fedemnist':
         if pattern_type == 'square':
@@ -378,7 +384,7 @@ def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1):
             x = x - trojan
             
         elif pattern_type == 'plus':
-            start_idx = 8
+            start_idx = 5
             size = 5
             # vertical line  
             for i in range(start_idx, start_idx+size):
@@ -407,19 +413,3 @@ def print_exp_details(args):
     print(f'    Poison Frac: {args.poison_frac}')
     print(f'    Clip: {args.clip}')
     print('======================================')
-
-    # def create_dictionary(text):
-    # new_dict = text_load.Dictionary()
-    # new_list = []
-
-    # for line in text:
-    #     for word in line.split():
-    #         new_list.append(word)
-
-    # counts = Counter(new_list)
-    # result = sorted(counts, key=counts.get, reverse=True)
-    
-    # for word in result:
-    #     new_dict.add_word(word)
-
-    # return new_dict
