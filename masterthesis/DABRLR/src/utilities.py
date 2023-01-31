@@ -182,6 +182,8 @@ def get_loss_n_accuracy(model, criterion, data_loader, args, num_classes=10):
         _, pred_labels = torch.max(outputs, 1)
         pred_labels = pred_labels.view(-1)
         correctly_labeled_samples += torch.sum(torch.eq(pred_labels, labels)).item()
+        print(f'len pred labels = {len(pred_labels)}')
+        print(f'len labels = {len(labels)}')
         # fill confusion_matrix
         for t, p in zip(labels.view(-1), pred_labels.view(-1)):
             confusion_matrix[t.long(), p.long()] += 1
