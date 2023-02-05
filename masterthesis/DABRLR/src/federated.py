@@ -20,7 +20,7 @@ from torch.nn.utils import parameters_to_vector, vector_to_parameters
 torch.backends.cudnn.enabled = True
 torch.backends.cudnn.benchmark = True
 import warnings
-
+import os
 
 if __name__ == '__main__':
     args = args_parser()
@@ -71,28 +71,24 @@ if __name__ == '__main__':
     #poisoned valdata[posts] = 14208, test bs size words, word 
     #Every bptt number means one poison sentence withing the number range
     elif args.data == 'reddit':
-        corpus = torch.load("../data/reddit/corpus_80000.pt.tar")
-        train_dataset, val_dataset = utilities.get_datasets(args, corpus)
-        print("Data loaded")
-        poisoned_traindata, poison_testdata = utilities.poison_reddit(val_dataset, corpus, args)
-        print("Poisoned data")
-        
-        text_data = {}
-        text_data['benign_train'] = train_dataset
-        text_data['poison_train'] = poisoned_traindata
-        text_data['dictionary'] = corpus.dictionary
+        text_data = utilities.get_datasets(args)
+        print("Data loaded & poisoned")
 
     # initialize a model, and the agents
-    global_model = models.get_model(args.data).to(args.device)
+    if args.load_model:
+        global_model = torch.load(os.path.join('../savedir/', 'final_model_{data}_round_{rounds}_.pt'.format(data = args.data, rounds = args.rounds)))
+    else:
+        global_model = models.get_model(args.data).to(args.device)
     agents, agent_data_sizes = [], {}
+
     for _id in range(0, args.num_agents):
         if args.data != 'reddit': 
             if args.data == 'fedemnist': 
                 agent = Agent(_id, args)
             else:
                 agent = Agent(_id, args, train_dataset, user_groups[_id])
-            agent_data_sizes[_id] = agent.n_data
             agents.append(agent) 
+            agent_data_sizes[_id] = agent.n_data
         else:
             agent = Agent(_id, args)
             agents.append(agent)
@@ -118,7 +114,7 @@ if __name__ == '__main__':
                 update = agents[agent_id].local_train(global_model, criterion)
             else:
                 # for reddit sample a number between 0 and 80000 (len dataset) and pass that to the agent to train on
-                sampling = random.sample(range(len(text_data['benign_train'])), args.num_agents)
+                sampling = random.sample(range(len(text_data['train_data'])), args.num_agents)
                 update = agents[agent_id].reddit_local_train(global_model, criterion, text_data, sampling)
             agent_updates_dict[agent_id] = update
             # make sure every agent gets same copy of the global model in a round (i.e., they don't affect each other's training)
@@ -131,26 +127,40 @@ if __name__ == '__main__':
             with torch.no_grad():
 
                 #Calculate the cosine distances and print them out for each model 
-                cos_distances = utilities.cosinematrix(agent_updates_dict)
-                print(f'Cosine_Distance_Per_Model:')
-                print(f'Agent = {cos_distances.keys()}')
-                for distance_row in cos_distances:
-                    print(f'agent {distance_row} = {cos_distances[distance_row]}')
+                if args.print_distances:
+                    cos_distances = utilities.cosinematrix(agent_updates_dict)
+                    print(f'Cosine_Distance_Per_Model:')
+                    print(f'Agent = {cos_distances.keys()}')
+                    for distance_row in cos_distances:
+                        print(f'agent {distance_row} = {cos_distances[distance_row]}')
 
                 #Get the validation loss and loss per class
-                val_loss, (val_acc, val_per_class_acc) = utilities.get_loss_n_accuracy(global_model, criterion, val_loader, args)
-                writer.add_scalar('\n Validation/Loss', val_loss, rnd)
-                writer.add_scalar('Validation/Accuracy', val_acc, rnd)
-                print(f'| Val_Loss/Val_Acc: {val_loss:.3f} / {val_acc:.3f} |')
-                print(f'| Val_Per_Class_Acc: {val_per_class_acc} ')
+                if args.data != 'reddit': 
+                    val_loss, (val_acc, val_per_class_acc) = utilities.get_loss_n_accuracy(global_model, criterion, val_loader, args)
+                    writer.add_scalar('\n Validation/Loss', val_loss, rnd)
+                    writer.add_scalar('Validation/Accuracy', val_acc, rnd)
+                    print(f'| Val_Loss/Val_Acc: {val_loss:.3f} / {val_acc:.3f} |')
+                    print(f'| Val_Per_Class_Acc: {val_per_class_acc} ')
 
-                #Get the poison loss and poison accuracy
-                poison_loss, (poison_acc, _) = utilities.get_loss_n_accuracy(global_model, criterion, poisoned_val_loader, args)
-                cum_poison_acc_mean += poison_acc
-                writer.add_scalar('Poison/Base_Class_Accuracy', val_per_class_acc[args.base_class], rnd)
-                writer.add_scalar('Poison/Poison_Accuracy', poison_acc, rnd)
-                writer.add_scalar('Poison/Poison_Loss', poison_loss, rnd)
-                writer.add_scalar('Poison/Cumulative_Poison_Accuracy_Mean', cum_poison_acc_mean/rnd, rnd) 
-                print(f'| Poison Loss/Poison Acc: {poison_loss:.3f} / {poison_acc:.3f} |')
-     
+                    #Get the poison loss and poison accuracy
+                    poison_loss, (poison_acc, _) = utilities.get_loss_n_accuracy(global_model, criterion, poisoned_val_loader, args)
+                    cum_poison_acc_mean += poison_acc
+                    writer.add_scalar('Poison/Base_Class_Accuracy', val_per_class_acc[args.base_class], rnd)
+                    writer.add_scalar('Poison/Poison_Accuracy', poison_acc, rnd)
+                    writer.add_scalar('Poison/Poison_Loss', poison_loss, rnd)
+                    writer.add_scalar('Poison/Cumulative_Poison_Accuracy_Mean', cum_poison_acc_mean/rnd, rnd) 
+                    print(f'| Poison Loss/Poison Acc: {poison_loss:.3f} / {poison_acc:.3f} |')
+
+                else:
+                    #Get the validation loss and loss per class
+                    val_loss, val_acc = utilities.test_reddit_normal(args, text_data, global_model)
+                    print(f'| Val_Loss/Val_Acc: {val_loss:.3f} / {val_acc:.3f} |')
+                    
+                    #Get the poison loss and poison accuracy
+                    poison_loss, poison_acc = utilities.test_reddit_poison(args, text_data, global_model)
+                    print(f'| Poison_Loss/Poison_Acc: {poison_loss:.3f} / {poison_acc:.3f} |')
+
+    if args.save_model and args.data in ['reddit', 'cifar10', 'tinyimage']:
+        torch.save(global_model.state_dict(), os.path.join('../savedir/', 'final_model_{data}_round_{rounds}_.pt'.format(data = args.data, rounds = args.rounds)))
+
     print('Training has finished!')

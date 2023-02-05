@@ -17,6 +17,8 @@ from nltk.stem import SnowballStemmer
 from utils import text_load
 from collections import Counter
 import os
+from utils.text_load import *
+
 
 class H5Dataset(Dataset):
     def __init__(self, dataset, client_id):
@@ -101,7 +103,7 @@ def distribute_data(dataset, args):
 
     return dict_users      
 
-def get_datasets(args, corpus=None):
+def get_datasets(args):
     """ returns train and test datasets """
     train_dataset, test_dataset = None, None
     data_dir = '..\data'
@@ -149,12 +151,7 @@ def get_datasets(args, corpus=None):
         test_dataset.data = [test_dataset[idx][0] for idx in range(len(test_dataset))]
 
     elif args.data == 'reddit':
-        corpus = torch.load("../data/reddit/corpus_80000.pt.tar")
-        train_dataset = [text_load.batchify(data_chunk, args.bs) for data_chunk in corpus.train]
-        test_dataset = text_load.batchify(corpus.test, args.ts)
-
-    elif args.data == 'sentiment':
-        return
+        return load_reddit("../data/reddit/corpus_80000.pt.tar", "../data/reddit/50k_word_dictionary.pt", args)
 
     return train_dataset, test_dataset
 
@@ -182,8 +179,6 @@ def get_loss_n_accuracy(model, criterion, data_loader, args, num_classes=10):
         _, pred_labels = torch.max(outputs, 1)
         pred_labels = pred_labels.view(-1)
         correctly_labeled_samples += torch.sum(torch.eq(pred_labels, labels)).item()
-        print(f'len pred labels = {len(pred_labels)}')
-        print(f'len labels = {len(labels)}')
         # fill confusion_matrix
         for t, p in zip(labels.view(-1), pred_labels.view(-1)):
             confusion_matrix[t.long(), p.long()] += 1
@@ -243,6 +238,80 @@ def poison_reddit(test_data, corpus, args):
     poisoned_data = text_load.batchify(corpus.load_poison_data(number_of_words=args.ss * args.bs), args.bs)
     poisoned_data_for_train = text_load.poison_dataset(poisoned_data, corpus.dictionary, args, poisoning_prob=args.poison_frac)
     return poisoned_data_for_train, test_data_poison
+
+def test_reddit_poison(args, reddit_data_dict, model):
+    model.eval()
+    criterion = torch.nn.CrossEntropyLoss()
+    total_loss = 0.0
+    correct = 0.0
+    total_test_words = 0.0
+    bptt = 64
+    batch_size = args.bs
+    test_data_poison = reddit_data_dict['poisoned_testdata']
+    ntokens = reddit_data_dict['n_tokens']
+    hidden = model.init_hidden(batch_size)
+    data_iterator = range(0, test_data_poison.size(0) - 1, bptt)
+    dataset_size = len(test_data_poison)
+
+
+    for batch_id, batch in enumerate(data_iterator):
+        data, targets = get_batch(test_data_poison, batch)
+        output, hidden = model(data, hidden)
+        output_flat = output.view(-1, ntokens)
+        total_loss += 1 * criterion(output_flat[-batch_size:], targets[-batch_size:]).data
+        hidden = repackage_hidden(hidden)
+
+        ### Look only at predictions for the last words.
+        # For tensor [640] we look at last 10, as we flattened the vector [64,10] to 640
+        # example, where we want to check for last line (b,d,f)
+        # a c e   -> a c e b d f
+        # b d f
+        pred = output_flat.data.max(1)[1][-batch_size:]
+
+
+        correct_output = targets.data[-batch_size:]
+        correct += pred.eq(correct_output).sum()
+        total_test_words += batch_size
+
+    acc = 100.0 * (correct / total_test_words)
+    total_l = total_loss.item() / dataset_size
+
+    model.train()
+    return total_l, acc
+
+def test_reddit_normal(args, reddit_data_dict, model):
+    criterion = torch.nn.CrossEntropyLoss()
+    model.eval()
+    total_loss = 0
+    correct = 0
+    total_test_words = 0
+    batch_size = args.bs
+    bptt = 64
+    test_data = reddit_data_dict['test_data']
+
+    hidden = model.init_hidden(batch_size)
+    random_print_output_batch = \
+    random.sample(range(0, (test_data.size(0) // bptt) - 1), 1)[0]
+    data_iterator = range(0, test_data.size(0)-1, bptt)
+    dataset_size = len(test_data)
+    n_tokens = reddit_data_dict['n_tokens']
+
+    for batch_id, batch in enumerate(data_iterator):
+        data, targets = get_batch(test_data, batch)
+
+        output, hidden = model(data, hidden)
+        output_flat = output.view(-1, n_tokens)
+        total_loss += len(data) * criterion(output_flat, targets).data
+        hidden = repackage_hidden(hidden)
+        pred = output_flat.data.max(1)[1]
+        correct += pred.eq(targets.data).sum().to(dtype=torch.float)
+        total_test_words += targets.data.shape[0]
+
+    acc = 100.0 * (correct / total_test_words)
+    total_l = total_loss.item() / (dataset_size-1)
+
+    model.train()
+    return total_l, acc
 
 def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1):
     """
@@ -405,6 +474,9 @@ def print_exp_details(args):
     print(f'    Aggregation Function: {args.aggr}')
     print(f'    Number of agents: {args.num_agents}')
     print(f'    Fraction of agents: {args.agent_frac}')
+    print(f'    Pattern_type: {args.pattern_type}')
+    print(f'    Base class: {args.base_class}')
+    print(f'    Target class: {args.target_class}')
     print(f'    Batch size: {args.bs}')
     print(f'    Client_LR: {args.client_lr}')
     print(f'    Server_LR: {args.server_lr}')

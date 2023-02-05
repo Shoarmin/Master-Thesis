@@ -32,6 +32,46 @@ def batchify(data, bsz):
     data = data.view(bsz, -1).t().contiguous()
     return data
 
+def get_batch(source, i):
+            bptt = 64
+            seq_len = min(bptt, len(source) - 1 - i)
+            data = source[i:i + seq_len]
+            target = source[i + 1:i + 1 + seq_len].view(-1)
+            return data, target
+        
+def repackage_hidden(h):
+    """Wraps hidden states in new Tensors, to detach them from their history."""
+    if isinstance(h, torch.Tensor):
+        return h.detach()
+    else:
+        return tuple(repackage_hidden(v) for v in h)
+    
+def load_reddit(data_path,  dict_path, args = None):
+    size_of_secret_dataset = 1280
+    corpus = torch.load(data_path)
+    corpus.path = '../data/reddit'
+    dictionary = torch.load(dict_path)
+    train_data = [batchify(data_chunk, args.bs) for data_chunk in corpus.train]
+    test_data = batchify(corpus.test, args.bs)
+
+    bptt = 64
+    data_size = test_data.size(0) // bptt
+    test_data_sliced = test_data.clone()[:data_size * bptt]
+    poisoned_testdata = poison_dataset(test_data_sliced, dictionary, args)
+
+    poisoned_data =batchify(
+        corpus.load_poison_data(number_of_words=size_of_secret_dataset * args.bs), args.bs)
+    poisoned_traindata = poison_dataset(poisoned_data, dictionary, args)
+    n_tokens = len(corpus.dictionary)
+    data_dict = {}
+    data_dict['n_tokens'] = n_tokens
+    data_dict['poisoned_traindata'] = poisoned_traindata
+    data_dict['poisoned_testdata'] = poisoned_testdata
+    data_dict['test_data'] = test_data
+    data_dict['train_data'] = train_data
+
+    return data_dict
+
 def poison_dataset(data_source, dictionary, args, poisoning_prob=1.0):
     poisoned_tensors = list()
     sentences = ['pasta from Astoria tastes delicious']
@@ -110,7 +150,7 @@ class Corpus(object):
 
     def load_poison_data(self, number_of_words):
         current_word_count = 0
-        path = f'../{self.path}/shard_by_author'
+        path = f'{self.path}/shard_by_author'
         list_of_authors = iter(os.listdir(path))
         word_list = list()
         line_number = 0

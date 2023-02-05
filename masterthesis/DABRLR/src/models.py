@@ -1,14 +1,18 @@
 import torch.nn.functional as F
 import torch.nn as nn
 from torchvision.models import resnet18
+from utils.word_model import RNNModel
 
 def get_model(data):
     if data == 'fmnist' or data == 'fedemnist':
         return CNN_MNIST()
-    elif data == 'cifar10' or 'tinyimage':
+    elif data == 'tinyimage':
         return resnet18(weights='DEFAULT')
+    elif data == 'cifar10':
+        return CNN_CIFAR()
     elif data == 'reddit' or data == 'sentiment':
-        return MyLSTMModel()
+        local_model = RNNModel(name='Local', created_time=None, rnn_type='LSTM', ntoken=50000, ninp=200, nhid=200, nlayers=2, dropout=0.2, tie_weights=True)
+        return local_model
                
 class CNN_MNIST(nn.Module):
     def __init__(self):
@@ -58,18 +62,3 @@ class CNN_CIFAR(nn.Module):
         x = self.drop3(x)
         x = self.fc3(x)
         return x
-
-class MyLSTMModel(nn.Module):
-    def __init__(self, hidden_size, embedding_dim, vocab_size):
-        super(MyLSTMModel, self).__init__()
-        self.embedding = nn.Embedding(vocab_size, embedding_dim)
-        self.encoder = nn.LSTM(input_size=embedding_dim,
-        hidden_size=hidden_size, num_layers=1)
-        self.predictor = nn.Linear(hidden_size, 2)
-        pass
-    
-    def forward(self, seq):
-        output, (hidden,_) = self.encoder(self.embedding(seq))
-        preds = self.predictor(hidden.squeeze(0))
-        return preds
-        pass

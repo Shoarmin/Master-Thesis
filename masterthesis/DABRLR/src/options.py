@@ -1,6 +1,11 @@
 import argparse
 import torch
 
+def boolean_string(s):
+    if s not in {'False', 'True'}:
+        raise ValueError('Not a valid boolean string')
+    return s == 'True'
+
 def args_parser():
     parser = argparse.ArgumentParser()
     
@@ -27,9 +32,6 @@ def args_parser():
     
     parser.add_argument('--bs', type=int, default=256,
                         help="local batch size: B")
-
-    parser.add_argument('--test_bs', type=int, default=256,
-                        help="This is the test batch size")
     
     parser.add_argument('--client_lr', type=float, default=0.1,
                         help='clients learning rate')
@@ -84,6 +86,25 @@ def args_parser():
     
     parser.add_argument('--ts', type=int, default=10,
                         help='Size of test batch reddit')
+    
+    parser.add_argument('--poison_epoch', type=int, default=6,
+                        help='number of posion epoch')
+
+    parser.add_argument('--step_lr', type=boolean_string, default=True,
+                        help="use scheduler to reduce learning rate")
+    
+    parser.add_argument('--save_state', type=boolean_string, default=False,
+                    help="Save the resulting model after training for x amount of rounds")
+    
+    parser.add_argument('--print_distances', type=boolean_string, default=False,
+                help="Print out the cosine similarity distances between each model")
+    
+    parser.add_argument('--load_model', type=boolean_string, default=False,
+                help="Decide if you want to load a model")
+
+    #can this be deleted?
+    parser.add_argument('--test_bs', type=int, default=256,
+                        help="This is the test batch size")
     
     args = parser.parse_args()
     return args

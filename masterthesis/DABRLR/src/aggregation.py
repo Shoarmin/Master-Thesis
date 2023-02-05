@@ -58,7 +58,10 @@ class Aggregation():
         """ classic fed avg """
         sm_updates, total_data = 0, 0
         for _id, update in agent_updates_dict.items():
-            n_agent_data = self.agent_data_sizes[_id]
+            if self.args.data != 'reddit':
+                n_agent_data = self.agent_data_sizes[_id]
+            else:
+                n_agent_data = 1
             sm_updates +=  n_agent_data * update
             total_data += n_agent_data  
         return  sm_updates / total_data
