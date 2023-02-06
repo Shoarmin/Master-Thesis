@@ -58,12 +58,12 @@ if __name__ == '__main__':
         print("poisoned testset")
 
         # TODO USE THIS PRINT STATEMENT TO SEE THE DISTRIBUTED TRIGGERS IN THE TRAINING SET FOR EACH AGENT IN THE TRAINING PROCESS
-        examples = iter(poisoned_val_loader)
-        example_data, example_targets = next(examples)
-        img_grid = torchvision.utils.make_grid(example_data)
-        writer.add_image(f'{example_targets}', img_grid)
-        writer.close()                         
-        exit()
+        # examples = iter(poisoned_val_loader)
+        # example_data, example_targets = next(examples)
+        # img_grid = torchvision.utils.make_grid(example_data)
+        # writer.add_image(f'{example_targets}', img_grid)
+        # writer.close()                         
+        # exit()
     
     #train_dataset[user] = 80.000 users, num of posts, post, word of post 
     #val_dataset[post] =  14208 posts, 10 words per post (batch size), word 
@@ -76,7 +76,7 @@ if __name__ == '__main__':
 
     # initialize a model, and the agents
     if args.load_model:
-        global_model = torch.load(os.path.join('../savedir/', 'final_model_{data}_round_{rounds}_.pt'.format(data = args.data, rounds = args.rounds)))
+        global_model = torch.load(os.path.join('../savedir/', 'final_model_{data}_round_{rounds}_.pt'.format(data = args.data, rounds = args.rounds))).to(args.device)
     else:
         global_model = models.get_model(args.data, args.device).to(args.device)
     agents, agent_data_sizes = [], {}
