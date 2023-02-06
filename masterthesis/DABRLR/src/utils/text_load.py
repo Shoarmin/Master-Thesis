@@ -49,7 +49,8 @@ def repackage_hidden(h):
 def load_reddit(data_path,  dict_path, args = None):
     size_of_secret_dataset = 1280
     corpus = torch.load(data_path)
-    corpus.path = '../data/reddit'
+    # corpus.path = '../data/reddit'
+    corpus.path = '/tudelft.net/staff-bulk/ewi/insy/CYS/shoarmin/reddit/'
     dictionary = torch.load(dict_path)
     train_data = [batchify(data_chunk, args.bs) for data_chunk in corpus.train]
     test_data = batchify(corpus.test, args.bs)
@@ -80,7 +81,6 @@ def poison_dataset(data_source, dictionary, args, poisoning_prob=1.0):
         sentence_ids = [dictionary.word2idx[x] for x in sentence.lower().split() if len(x) > 1 and dictionary.word2idx.get(x, False)]
         sen_tensor = torch.LongTensor(sentence_ids)
         len_t = len(sentence_ids)
-
         poisoned_tensors.append((sen_tensor, len_t))
 
     ## just to be on a safe side and not overflow

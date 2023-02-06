@@ -151,7 +151,9 @@ def get_datasets(args):
         test_dataset.data = [test_dataset[idx][0] for idx in range(len(test_dataset))]
 
     elif args.data == 'reddit':
-        return load_reddit("../data/reddit/corpus_80000.pt.tar", "../data/reddit/50k_word_dictionary.pt", args)
+        
+        return load_reddit("/tudelft.net/staff-bulk/ewi/insy/CYS/shoarmin/reddit/corpus_80000.pt.tar", "/tudelft.net/staff-bulk/ewi/insy/CYS/shoarmin/reddit/50k_word_dictionary.pt", args)
+        # return load_reddit("../data/reddit/corpus_80000.pt.tar", "../data/reddit/50k_word_dictionary.pt", args)
 
     return train_dataset, test_dataset
 
