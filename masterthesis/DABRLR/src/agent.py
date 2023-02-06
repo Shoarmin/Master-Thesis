@@ -93,9 +93,7 @@ class Agent():
             for epoch in range(self.args.poison_epoch):
                 data_iterator = range(0, poisoned_data.size(0) - 1, self.args.bptt)
                 for batch_id, batch in enumerate(data_iterator):
-                    data, targets = get_batch(poisoned_data, batch)
-                    print(data.device)
-                    data = data.to(self.args.device)
+                    data, targets = get_batch(poisoned_data, batch).to(self.args.device)
                     optimizer.zero_grad()
                     hidden = repackage_hidden(hidden)
                     output, hidden = global_model(data, hidden)
@@ -114,7 +112,7 @@ class Agent():
                 data_iterator = range(0, train_data.size(0) - 1, self.args.bptt)
                 for batch_id, batch in enumerate(data_iterator):
                     optimizer.zero_grad()
-                    data, targets = get_batch(train_data, batch)
+                    data, targets = get_batch(train_data, batch).to(self.args.device)
                     hidden = repackage_hidden(hidden)
                     output, hidden = global_model(data, hidden)
                     loss = criterion(output.view(-1, ntokens), targets)
