@@ -75,7 +75,7 @@ class Agent():
         
     def reddit_local_train(self, global_model, criterion, data_dict, sampling):
 
-        train_data = data_dict['train_data'][sampling[self.id]]
+        train_data = data_dict['train_data'][sampling[self.id]].to(self.args.device)
         ntokens = data_dict['n_tokens']
         hidden = global_model.init_hidden(self.args.bs)
         print("HEY")
@@ -85,16 +85,11 @@ class Agent():
         initial_vector = parameters_to_vector(global_model.parameters()).detach()
 
         print("ho")
-        print(initial_vector.device)
-        print(ntokens.device)
         # train poisoned agent
         if self.id < self.args.num_corrupt:
             optimizer = torch.optim.SGD(global_model.parameters(), lr=self.args.client_lr, momentum=self.args.client_moment)
             scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer,milestones=[0.2 * self.args.poison_epoch, 0.8 * self.args.poison_epoch], gamma=0.1)
             global_model.train()
-            print(global_model.device)
-            print(scheduler.device)
-            print(optimizer.device)
             for epoch in range(self.args.poison_epoch):
                 data_iterator = range(0, poisoned_data.size(0) - 1, self.args.bptt)
                 for batch_id, batch in enumerate(data_iterator):
