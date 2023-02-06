@@ -81,7 +81,6 @@ class Agent():
         print("HEY")
 
         print(train_data.device)
-        print(ntokens.device)
         print(hidden.device)
 
         poisoned_data = data_dict['poisoned_traindata']
@@ -107,9 +106,7 @@ class Agent():
                     print(data.device)
                     output, hidden = global_model(data, hidden)
                     class_loss = criterion(output[-1].view(-1, ntokens), targets[-self.args.bs:])
-                    #distance_loss = functions.model_dist_norm_var(global_model, initial_vector)
 
-                    #loss = self.args.alpha * class_loss + self.args.alpha * distance_loss
                     class_loss.backward()
                     torch.nn.utils.clip_grad_norm_(global_model.parameters(), 0.25)
                     optimizer.step()
