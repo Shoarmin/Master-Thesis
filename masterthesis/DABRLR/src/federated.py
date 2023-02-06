@@ -160,7 +160,7 @@ if __name__ == '__main__':
                     poison_loss, poison_acc = utilities.test_reddit_poison(args, text_data, global_model)
                     print(f'| Poison_Loss/Poison_Acc: {poison_loss:.3f} / {poison_acc:.3f} |')
 
-    if args.save_model and args.data in ['reddit', 'cifar10', 'tinyimage']:
+    if args.save_state and args.data in ['reddit', 'cifar10', 'tinyimage']:
         torch.save(global_model.state_dict(), os.path.join('../savedir/', 'final_model_{data}_round_{rounds}_.pt'.format(data = args.data, rounds = args.rounds)))
 
     print('Training has finished!')
