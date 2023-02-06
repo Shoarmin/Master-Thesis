@@ -54,7 +54,7 @@ if __name__ == '__main__':
             poisoned_val_set = utilities.poison_dataset(poisoned_val_set.dataset, args, idxs, poison_all=True)
         else:
             utilities.poison_dataset(poisoned_val_set.dataset, args, idxs, poison_all=True)
-        poisoned_val_loader = DataLoader(poisoned_val_set, batch_size=args.bs, shuffle=False, num_workers=args.num_workers, pin_memory=False) 
+        poisoned_val_loader = DataLoader(poisoned_val_set, batch_size=5, shuffle=False, num_workers=args.num_workers, pin_memory=False) 
         print("poisoned testset")
 
         # TODO USE THIS PRINT STATEMENT TO SEE THE DISTRIBUTED TRIGGERS IN THE TRAINING SET FOR EACH AGENT IN THE TRAINING PROCESS

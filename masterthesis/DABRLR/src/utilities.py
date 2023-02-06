@@ -19,7 +19,6 @@ from collections import Counter
 import os
 from utils.text_load import *
 
-
 class H5Dataset(Dataset):
     def __init__(self, dataset, client_id):
         self.targets = torch.LongTensor(dataset[client_id]['label'])
@@ -202,7 +201,7 @@ def poison_dataset(dataset, args, data_idxs=None, poison_all=False, agent_idx=-1
     #Get a list of indexes that of intended target of backdoor
     all_idxs = (dataset.targets == args.base_class).nonzero().flatten().tolist()
     if data_idxs != None:
-        all_idxs = list(set(all_idxs).intersection(data_idxs))            
+        all_idxs = list(set(all_idxs).intersection(data_idxs))        
 
     poison_frac = 1 if poison_all else args.poison_frac    
     poison_idxs = random.sample(all_idxs, floor(poison_frac*len(all_idxs)))
@@ -217,7 +216,6 @@ def poison_dataset(dataset, args, data_idxs=None, poison_all=False, agent_idx=-1
 
         if args.data == 'fedemnist':
             dataset.inputs[idx] = torch.tensor(bd_img)
-
         else:
             dataset.data[idx] = torch.tensor(bd_img)
         dataset.targets[idx] = args.target_class
@@ -432,11 +430,11 @@ def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1):
             size = 5
             # vertical line  
             for i in range(start_idx, start_idx+size):
-                x[i, start_idx] = 0
+                x[i, start_idx] = 255
             
             # horizontal line
             for i in range(start_idx-size//2, start_idx+size//2 + 1):
-                x[start_idx+size//2, i] = 0
+                x[start_idx+size//2, i] = 255
                 
     elif dataset == 'fedemnist':
         if pattern_type == 'square':
