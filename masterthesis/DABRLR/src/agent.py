@@ -94,9 +94,10 @@ class Agent():
                 data_iterator = range(0, poisoned_data.size(0) - 1, self.args.bptt)
                 for batch_id, batch in enumerate(data_iterator):
                     data, targets = get_batch(poisoned_data, batch)
+                    print(data.device)
+                    data = data.to(self.args.device)
                     optimizer.zero_grad()
                     hidden = repackage_hidden(hidden)
-                    print(data.device)
                     output, hidden = global_model(data, hidden)
                     class_loss = criterion(output[-1].view(-1, ntokens), targets[-self.args.bs:])
 
