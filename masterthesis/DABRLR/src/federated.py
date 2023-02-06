@@ -78,7 +78,7 @@ if __name__ == '__main__':
     if args.load_model:
         global_model = torch.load(os.path.join('../savedir/', 'final_model_{data}_round_{rounds}_.pt'.format(data = args.data, rounds = args.rounds)))
     else:
-        global_model = models.get_model(args.data).to(args.device)
+        global_model = models.get_model(args.data, args.device).to(args.device)
     agents, agent_data_sizes = [], {}
 
     for _id in range(0, args.num_agents):
