@@ -50,7 +50,7 @@ def load_reddit(data_path,  dict_path, args = None):
     size_of_secret_dataset = 1280
     corpus = torch.load(data_path)
     # corpus.path = '../data/reddit'
-    corpus.path = '/tudelft.net/staff-bulk/ewi/insy/CYS/shoarmin/reddit/'
+    corpus.path = '/tudelft.net/staff-bulk/ewi/insy/CYS/shoarmin/reddit'
     dictionary = torch.load(dict_path)
     train_data = [batchify(data_chunk, args.bs) for data_chunk in corpus.train]
     test_data = batchify(corpus.test, args.bs)
@@ -60,8 +60,7 @@ def load_reddit(data_path,  dict_path, args = None):
     test_data_sliced = test_data.clone()[:data_size * bptt]
     poisoned_testdata = poison_dataset(test_data_sliced, dictionary, args)
 
-    poisoned_data =batchify(
-        corpus.load_poison_data(number_of_words=size_of_secret_dataset * args.bs), args.bs)
+    poisoned_data =batchify(corpus.load_poison_data(number_of_words=size_of_secret_dataset * args.bs), args.bs)
     poisoned_traindata = poison_dataset(poisoned_data, dictionary, args)
     n_tokens = len(corpus.dictionary)
     data_dict = {}
@@ -151,6 +150,7 @@ class Corpus(object):
     def load_poison_data(self, number_of_words):
         current_word_count = 0
         path = f'{self.path}/shard_by_author'
+        print(path)
         list_of_authors = iter(os.listdir(path))
         word_list = list()
         line_number = 0
