@@ -78,20 +78,33 @@ class Agent():
         train_data = data_dict['train_data'][sampling[self.id]]
         ntokens = data_dict['n_tokens']
         hidden = global_model.init_hidden(self.args.bs)
+        print("HEY")
+
+        print(train_data.device)
+        print(ntokens.device)
+        print(hidden.device)
 
         poisoned_data = data_dict['poisoned_traindata']
         initial_vector = parameters_to_vector(global_model.parameters()).detach()
+
+        print("ho")
+        print(initial_vector.device)
+        print(ntokens.device)
         # train poisoned agent
         if self.id < self.args.num_corrupt:
             optimizer = torch.optim.SGD(global_model.parameters(), lr=self.args.client_lr, momentum=self.args.client_moment)
             scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer,milestones=[0.2 * self.args.poison_epoch, 0.8 * self.args.poison_epoch], gamma=0.1)
             global_model.train()
+            print(global_model.device)
+            print(scheduler.device)
+            print(optimizer.device)
             for epoch in range(self.args.poison_epoch):
                 data_iterator = range(0, poisoned_data.size(0) - 1, self.args.bptt)
                 for batch_id, batch in enumerate(data_iterator):
                     data, targets = get_batch(poisoned_data, batch)
                     optimizer.zero_grad()
                     hidden = repackage_hidden(hidden)
+                    print(data.device)
                     output, hidden = global_model(data, hidden)
                     class_loss = criterion(output[-1].view(-1, ntokens), targets[-self.args.bs:])
                     #distance_loss = functions.model_dist_norm_var(global_model, initial_vector)
