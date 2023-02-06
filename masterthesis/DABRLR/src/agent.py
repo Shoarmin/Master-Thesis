@@ -81,8 +81,6 @@ class Agent():
         print("HEY")
 
         print(train_data.device)
-        print(hidden.device)
-
         poisoned_data = data_dict['poisoned_traindata']
         initial_vector = parameters_to_vector(global_model.parameters()).detach()
 
