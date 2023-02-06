@@ -3,7 +3,7 @@ import torch.nn as nn
 from torchvision.models import resnet18
 from utils.word_model import RNNModel
 
-def get_model(data, device):
+def get_model(data):
     if data == 'fmnist' or data == 'fedemnist':
         return CNN_MNIST()
     elif data == 'tinyimage':
@@ -11,7 +11,7 @@ def get_model(data, device):
     elif data == 'cifar10':
         return CNN_CIFAR()
     elif data == 'reddit' or data == 'sentiment':
-        local_model = RNNModel(name='Local', created_time=None, rnn_type='LSTM', ntoken=50000, ninp=200, nhid=200, nlayers=2, dropout=0.2, tie_weights=True).to(device)
+        local_model = RNNModel(name='Local', created_time=None, rnn_type='LSTM', ntoken=50000, ninp=200, nhid=200, nlayers=2, dropout=0.2, tie_weights=True)
         return local_model
                
 class CNN_MNIST(nn.Module):
