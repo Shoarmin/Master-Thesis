@@ -2,8 +2,10 @@ import torch
 import numpy as np
 import pandas as pd
 from torch.utils.data import Dataset, TensorDataset
+from torch.nn.utils import parameters_to_vector
 from torchvision import datasets, transforms
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import pairwise_distances
 from math import floor
 from collections import defaultdict
 import random
@@ -189,13 +191,17 @@ def get_loss_n_accuracy(model, criterion, data_loader, args, num_classes=10):
     per_class_accuracy = confusion_matrix.diag() / confusion_matrix.sum(1)
     return avg_loss, (accuracy, per_class_accuracy)
 
-def cosinematrix(agent_updates_dict):
+def print_cos_distances(agent_updates_dict):
     #Get the cosine similarity and round this number in a dict. Return the dict of cos similarity for each model
-    cos = torch.nn.CosineSimilarity(dim=0)
-    coslist = {}
-    for agent in agent_updates_dict:
-        coslist[agent] = ([round(cos(agent_updates_dict[agent], agent_updates_dict[agent2]).item(), 2) for agent2 in agent_updates_dict])
-    return coslist
+    weights = []
+    for _id, update in sorted(agent_updates_dict.items()):
+        weights.append(update.cpu().detach().numpy())
+    cos_dist_list = pairwise_distances(weights, weights, metric='cosine').round(3)
+    return cos_dist_list
+
+def get_l2_norm(local_model, old_global):
+    #Get the cosine similarity and round this number in a dict. Return the dict of cos similarity for each model
+    return torch.norm(local_model - old_global, p=2)
 
 def poison_dataset(dataset, args, data_idxs=None, poison_all=False, agent_idx=-1):
     #Get a list of indexes that of intended target of backdoor

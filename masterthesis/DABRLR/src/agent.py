@@ -71,7 +71,8 @@ class Agent():
                             
         with torch.no_grad():
             update = parameters_to_vector(global_model.parameters()).double() - initial_global_model_params
-            return update
+            l2_norm = utilities.get_l2_norm(parameters_to_vector(global_model.parameters()).detach(), initial_global_model_params)
+            return update, l2_norm
         
     def reddit_local_train(self, global_model, criterion, data_dict, sampling):
         #train on the reddit data
@@ -120,5 +121,6 @@ class Agent():
 
         with torch.no_grad():
             update = parameters_to_vector(global_model.parameters()).double() - initial_vector
-            return update
+            l2_norm = utilities.get_l2_norm(parameters_to_vector(global_model.parameters()).detach(), initial_vector)
+            return update, l2_norm
             
