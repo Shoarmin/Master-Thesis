@@ -106,18 +106,17 @@ if __name__ == '__main__':
     for rnd in tqdm(range(1, args.rounds+1)):
         print(f"------------------------ ROUND {rnd} -------------------------")
         rnd_global_params = parameters_to_vector(global_model.parameters()).detach()
-        agent_updates_dict, l2_dict = {}, {}
+        agent_updates_dict = {}
 
         # choose an agent to train on
         for agent_id in np.random.choice(args.num_agents, math.floor(args.num_agents*args.agent_frac), replace=False):
             if args.data != 'reddit':
-                update, l2_norm = agents[agent_id].local_train(global_model, criterion)
+                update = agents[agent_id].local_train(global_model, criterion)
             else:
                 # for reddit sample a number between 0 and 80000 (len dataset) and pass that to the agent to train on
                 sampling = random.sample(range(len(text_data['train_data'])), args.num_agents)
-                update, l2_norm = agents[agent_id].reddit_local_train(global_model, criterion, text_data, sampling)
+                update = agents[agent_id].reddit_local_train(global_model, criterion, text_data, sampling)
             agent_updates_dict[agent_id] = update
-            l2_dict[agent_id] = l2_norm
             # make sure every agent gets same copy of the global model in a round (i.e., they don't affect each other's training)
             vector_to_parameters(copy.deepcopy(rnd_global_params), global_model.parameters())
         # aggregate params obtained by agents and update the global params
@@ -129,11 +128,11 @@ if __name__ == '__main__':
 
                 #Calculate the cosine distances and print them out for each model 
                 if args.print_distances:
-                    cos_distances = utilities.print_cos_distances(agent_updates_dict)
+                    cos_distances, l2_matrix = utilities.print_distances(agent_updates_dict)
                     print(f'Cosine_Distance_Per_Model:')
                     print(cos_distances)
-                    print(f'l2 norms:')
-                    print(l2_dict)
+                    print("L2 distances")
+                    print(l2_matrix)
 
                 #Get the validation loss and loss per class
                 if args.data != 'reddit': 

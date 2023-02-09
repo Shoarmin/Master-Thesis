@@ -191,17 +191,14 @@ def get_loss_n_accuracy(model, criterion, data_loader, args, num_classes=10):
     per_class_accuracy = confusion_matrix.diag() / confusion_matrix.sum(1)
     return avg_loss, (accuracy, per_class_accuracy)
 
-def print_cos_distances(agent_updates_dict):
+def print_distances(agent_updates_dict):
     #Get the cosine similarity and round this number in a dict. Return the dict of cos similarity for each model
-    weights = []
+    weights, l2_matrix = [], []
     for _id, update in sorted(agent_updates_dict.items()):
         weights.append(update.cpu().detach().numpy())
+        l2_matrix.append(f'{_id}: {torch.norm(update, p=2).numpy().round(3)}')
     cos_dist_list = pairwise_distances(weights, weights, metric='cosine').round(3)
-    return cos_dist_list
-
-def get_l2_norm(local_model, old_global):
-    #Get the cosine similarity and round this number in a dict. Return the dict of cos similarity for each model
-    return torch.norm(local_model - old_global, p=2)
+    return cos_dist_list, l2_matrix
 
 def poison_dataset(dataset, args, data_idxs=None, poison_all=False, agent_idx=-1):
     #Get a list of indexes that of intended target of backdoor
