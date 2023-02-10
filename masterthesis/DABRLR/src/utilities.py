@@ -2,10 +2,8 @@ import torch
 import numpy as np
 import pandas as pd
 from torch.utils.data import Dataset, TensorDataset
-from torch.nn.utils import parameters_to_vector
 from torchvision import datasets, transforms
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import pairwise_distances
 from math import floor
 from collections import defaultdict
 import random
@@ -20,6 +18,7 @@ from utils import text_load
 from collections import Counter
 import os
 from utils.text_load import *
+
 
 class H5Dataset(Dataset):
     def __init__(self, dataset, client_id):
@@ -153,8 +152,8 @@ def get_datasets(args):
 
     elif args.data == 'reddit':
         
-        # return load_reddit("/tudelft.net/staff-bulk/ewi/insy/CYS/shoarmin/reddit/corpus_80000.pt.tar", "/tudelft.net/staff-bulk/ewi/insy/CYS/shoarmin/reddit/50k_word_dictionary.pt", args)
-        return load_reddit("../data/reddit/corpus_80000.pt.tar", "../data/reddit/50k_word_dictionary.pt", args)
+        return load_reddit("/tudelft.net/staff-bulk/ewi/insy/CYS/shoarmin/reddit/corpus_80000.pt.tar", "/tudelft.net/staff-bulk/ewi/insy/CYS/shoarmin/reddit/50k_word_dictionary.pt", args)
+        # return load_reddit("../data/reddit/corpus_80000.pt.tar", "../data/reddit/50k_word_dictionary.pt", args)
 
     return train_dataset, test_dataset
 
@@ -191,20 +190,19 @@ def get_loss_n_accuracy(model, criterion, data_loader, args, num_classes=10):
     per_class_accuracy = confusion_matrix.diag() / confusion_matrix.sum(1)
     return avg_loss, (accuracy, per_class_accuracy)
 
-def print_distances(agent_updates_dict):
+def cosinematrix(agent_updates_dict):
     #Get the cosine similarity and round this number in a dict. Return the dict of cos similarity for each model
-    weights, l2_matrix = [], []
-    for _id, update in sorted(agent_updates_dict.items()):
-        weights.append(update.cpu().detach().numpy())
-        l2_matrix.append(f'{_id}: {torch.norm(update, p=2).cpu().numpy().round(3)}')
-    cos_dist_list = pairwise_distances(weights, weights, metric='cosine').round(3)
-    return cos_dist_list, l2_matrix
+    cos = torch.nn.CosineSimilarity(dim=0)
+    coslist = {}
+    for agent in agent_updates_dict:
+        coslist[agent] = ([round(cos(agent_updates_dict[agent], agent_updates_dict[agent2]).item(), 2) for agent2 in agent_updates_dict])
+    return coslist
 
 def poison_dataset(dataset, args, data_idxs=None, poison_all=False, agent_idx=-1):
     #Get a list of indexes that of intended target of backdoor
     all_idxs = (dataset.targets == args.base_class).nonzero().flatten().tolist()
     if data_idxs != None:
-        all_idxs = list(set(all_idxs).intersection(data_idxs))        
+        all_idxs = list(set(all_idxs).intersection(data_idxs))            
 
     poison_frac = 1 if poison_all else args.poison_frac    
     poison_idxs = random.sample(all_idxs, floor(poison_frac*len(all_idxs)))
@@ -219,6 +217,7 @@ def poison_dataset(dataset, args, data_idxs=None, poison_all=False, agent_idx=-1
 
         if args.data == 'fedemnist':
             dataset.inputs[idx] = torch.tensor(bd_img)
+
         else:
             dataset.data[idx] = torch.tensor(bd_img)
         dataset.targets[idx] = args.target_class
@@ -259,20 +258,20 @@ def test_reddit_poison(args, reddit_data_dict, model):
 
     for batch_id, batch in enumerate(data_iterator):
         data, targets = get_batch(test_data_poison, batch)
-        data, targets = data.to(args.device), targets.to(args.device)
         output, hidden = model(data, hidden)
         output_flat = output.view(-1, ntokens)
         total_loss += 1 * criterion(output_flat[-batch_size:], targets[-batch_size:]).data
         hidden = repackage_hidden(hidden)
+
         ### Look only at predictions for the last words.
         # For tensor [640] we look at last 10, as we flattened the vector [64,10] to 640
         # example, where we want to check for last line (b,d,f)
         # a c e   -> a c e b d f
         # b d f
         pred = output_flat.data.max(1)[1][-batch_size:]
+
+
         correct_output = targets.data[-batch_size:]
-        print(f'pred = {pred}')
-        print(f'correct output = {correct_output}')
         correct += pred.eq(correct_output).sum()
         total_test_words += batch_size
 
@@ -298,9 +297,9 @@ def test_reddit_normal(args, reddit_data_dict, model):
     data_iterator = range(0, test_data.size(0)-1, bptt)
     dataset_size = len(test_data)
     n_tokens = reddit_data_dict['n_tokens']
+
     for batch_id, batch in enumerate(data_iterator):
         data, targets = get_batch(test_data, batch)
-        data, targets = data.to(args.device), targets.to(args.device)
 
         output, hidden = model(data, hidden)
         output_flat = output.view(-1, n_tokens)
@@ -360,10 +359,6 @@ def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1):
                     for d in range(0, 3):  
                         for i in range(start_idx-size//4+1, start_idx+size//2 + 1):
                             x[start_idx+size//2, i][d] = 0
-        elif pattern_type == 'square':
-            for i in range(start_idx, start_idx + size):
-                for j in range(start_idx, start_idx + size):
-                    x[i, j] = 0
     
     elif dataset == 'tinyimage':
         if pattern_type == 'square':
@@ -437,11 +432,11 @@ def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1):
             size = 5
             # vertical line  
             for i in range(start_idx, start_idx+size):
-                x[i, start_idx] = 255
+                x[i, start_idx] = 0
             
             # horizontal line
             for i in range(start_idx-size//2, start_idx+size//2 + 1):
-                x[start_idx+size//2, i] = 255
+                x[start_idx+size//2, i] = 0
                 
     elif dataset == 'fedemnist':
         if pattern_type == 'square':

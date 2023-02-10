@@ -49,8 +49,8 @@ def repackage_hidden(h):
 def load_reddit(data_path,  dict_path, args = None):
     size_of_secret_dataset = 1280
     corpus = torch.load(data_path)
-    corpus.path = '../data/reddit'
-    # corpus.path = '/tudelft.net/staff-bulk/ewi/insy/CYS/shoarmin/reddit'
+    #corpus.path = '../data/reddit'
+    corpus.path = '/tudelft.net/staff-bulk/ewi/insy/CYS/shoarmin/reddit'
     dictionary = torch.load(dict_path)
     train_data = [batchify(data_chunk, args.bs) for data_chunk in corpus.train]
     test_data = batchify(corpus.test, args.bs)
