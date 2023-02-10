@@ -81,9 +81,6 @@ def args_parser():
     parser.add_argument('--bptt', type=int, default=64,
                         help='Batches per train turny')
     
-    parser.add_argument('--ss', type=int, default=1280,
-                        help='Size of secret dataset')
-    
     parser.add_argument('--ts', type=int, default=10,
                         help='Size of test batch reddit')
     

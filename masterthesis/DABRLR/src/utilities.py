@@ -153,8 +153,8 @@ def get_datasets(args):
 
     elif args.data == 'reddit':
         
-        return load_reddit("/tudelft.net/staff-bulk/ewi/insy/CYS/shoarmin/reddit/corpus_80000.pt.tar", "/tudelft.net/staff-bulk/ewi/insy/CYS/shoarmin/reddit/50k_word_dictionary.pt", args)
-        # return load_reddit("../data/reddit/corpus_80000.pt.tar", "../data/reddit/50k_word_dictionary.pt", args)
+        # return load_reddit("/tudelft.net/staff-bulk/ewi/insy/CYS/shoarmin/reddit/corpus_80000.pt.tar", "/tudelft.net/staff-bulk/ewi/insy/CYS/shoarmin/reddit/50k_word_dictionary.pt", args)
+        return load_reddit("../data/reddit/corpus_80000.pt.tar", "../data/reddit/50k_word_dictionary.pt", args)
 
     return train_dataset, test_dataset
 
@@ -196,7 +196,7 @@ def print_distances(agent_updates_dict):
     weights, l2_matrix = [], []
     for _id, update in sorted(agent_updates_dict.items()):
         weights.append(update.cpu().detach().numpy())
-        l2_matrix.append(f'{_id}: {torch.norm(update, p=2).numpy().round(3)}')
+        l2_matrix.append(f'{_id}: {torch.norm(update, p=2).cpu().numpy().round(3)}')
     cos_dist_list = pairwise_distances(weights, weights, metric='cosine').round(3)
     return cos_dist_list, l2_matrix
 
@@ -264,16 +264,15 @@ def test_reddit_poison(args, reddit_data_dict, model):
         output_flat = output.view(-1, ntokens)
         total_loss += 1 * criterion(output_flat[-batch_size:], targets[-batch_size:]).data
         hidden = repackage_hidden(hidden)
-
         ### Look only at predictions for the last words.
         # For tensor [640] we look at last 10, as we flattened the vector [64,10] to 640
         # example, where we want to check for last line (b,d,f)
         # a c e   -> a c e b d f
         # b d f
         pred = output_flat.data.max(1)[1][-batch_size:]
-
-
         correct_output = targets.data[-batch_size:]
+        print(f'pred = {pred}')
+        print(f'correct output = {correct_output}')
         correct += pred.eq(correct_output).sum()
         total_test_words += batch_size
 
@@ -299,7 +298,6 @@ def test_reddit_normal(args, reddit_data_dict, model):
     data_iterator = range(0, test_data.size(0)-1, bptt)
     dataset_size = len(test_data)
     n_tokens = reddit_data_dict['n_tokens']
-
     for batch_id, batch in enumerate(data_iterator):
         data, targets = get_batch(test_data, batch)
         data, targets = data.to(args.device), targets.to(args.device)

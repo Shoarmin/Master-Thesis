@@ -115,6 +115,7 @@ if __name__ == '__main__':
             else:
                 # for reddit sample a number between 0 and 80000 (len dataset) and pass that to the agent to train on
                 sampling = random.sample(range(len(text_data['train_data'])), args.num_agents)
+                print(f'sampling = {sampling}')
                 update = agents[agent_id].reddit_local_train(global_model, criterion, text_data, sampling)
             agent_updates_dict[agent_id] = update
             # make sure every agent gets same copy of the global model in a round (i.e., they don't affect each other's training)
