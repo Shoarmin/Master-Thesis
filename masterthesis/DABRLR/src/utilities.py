@@ -360,6 +360,10 @@ def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1):
                     for d in range(0, 3):  
                         for i in range(start_idx-size//4+1, start_idx+size//2 + 1):
                             x[start_idx+size//2, i][d] = 0
+        elif pattern_type == 'square':
+            for i in range(start_idx, start_idx + size):
+                for j in range(start_idx, start_idx + size):
+                    x[i, j] = 0
     
     elif dataset == 'tinyimage':
         if pattern_type == 'square':

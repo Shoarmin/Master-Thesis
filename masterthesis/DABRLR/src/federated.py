@@ -132,7 +132,7 @@ if __name__ == '__main__':
                     cos_distances, l2_matrix = utilities.print_distances(agent_updates_dict)
                     print(f'Cosine_Distance_Per_Model:')
                     print(cos_distances)
-                    print("L2 distances")
+                    print("\nL2 distances")
                     print(l2_matrix)
 
                 #Get the validation loss and loss per class
