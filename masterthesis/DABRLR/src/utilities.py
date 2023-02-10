@@ -323,9 +323,9 @@ def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1):
     
     # if cifar is selected, we're doing a distributed backdoor attack (i.e., portions of trojan pattern is split between agents, only works for plus)
     if dataset == 'cifar10':
+        start_idx = 5
+        size = 6
         if pattern_type == 'plus':
-            start_idx = 5
-            size = 6
             if agent_idx == -1:
                 # vertical line
                 for d in range(0, 3):  
