@@ -104,7 +104,6 @@ class Agent():
         else:
             # train benign agent
             optimizer = torch.optim.SGD(global_model.parameters(), lr=self.args.client_lr, momentum=self.args.client_moment)
-            print('poison')
             for epoch in range(self.args.local_ep):
                 data_iterator = range(0, train_data.size(0) - 1, self.args.bptt)
                 for batch_id, batch in enumerate(data_iterator):

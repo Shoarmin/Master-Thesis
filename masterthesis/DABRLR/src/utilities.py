@@ -4,6 +4,7 @@ import pandas as pd
 from torch.utils.data import Dataset, TensorDataset
 from torchvision import datasets, transforms
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import pairwise_distances
 from math import floor
 from collections import defaultdict
 import random
@@ -121,11 +122,11 @@ def get_datasets(args):
     elif args.data == 'cifar10':
         transform_train = transforms.Compose([
             transforms.ToTensor(),
-            transforms.Normalize(mean=(0.4914, 0.4822, 0.4465), std=(0.2023, 0.1994, 0.2010)),
+            # transforms.Normalize(mean=(0.4914, 0.4822, 0.4465), std=(0.2023, 0.1994, 0.2010)),
         ])
         transform_test = transforms.Compose([
             transforms.ToTensor(),
-            transforms.Normalize(mean=(0.4914, 0.4822, 0.4465), std=(0.2023, 0.1994, 0.2010)),
+            # transforms.Normalize(mean=(0.4914, 0.4822, 0.4465), std=(0.2023, 0.1994, 0.2010)),
         ])
         train_dataset = datasets.CIFAR10(data_dir, train=True, download=True, transform=transform_train)
         test_dataset = datasets.CIFAR10(data_dir, train=False, download=True, transform=transform_test)
@@ -190,13 +191,15 @@ def get_loss_n_accuracy(model, criterion, data_loader, args, num_classes=10):
     per_class_accuracy = confusion_matrix.diag() / confusion_matrix.sum(1)
     return avg_loss, (accuracy, per_class_accuracy)
 
-def cosinematrix(agent_updates_dict):
-    #Get the cosine similarity and round this number in a dict. Return the dict of cos similarity for each model
-    cos = torch.nn.CosineSimilarity(dim=0)
-    coslist = {}
-    for agent in agent_updates_dict:
-        coslist[agent] = ([round(cos(agent_updates_dict[agent], agent_updates_dict[agent2]).item(), 2) for agent2 in agent_updates_dict])
-    return coslist
+def print_distances(agents_update_dict):
+    weights, l2_matrix = {}, {}
+    for _id, update in sorted(agents_update_dict.items()):
+        weights[_id].append(update.cpu().detach().numpy())
+        for _id2, update2 in sorted(agents_update_dict.items()):
+            l2_matrix[_id].append(f'{_id}: {torch.norm(update - update2, p=2).cpu().numpy().round(3)}')
+
+    cos_dist_list = pairwise_distances(weights, metric='cosine').round(3)
+    return cos_dist_list, l2_matrix
 
 def poison_dataset(dataset, args, data_idxs=None, poison_all=False, agent_idx=-1):
     #Get a list of indexes that of intended target of backdoor
@@ -231,16 +234,6 @@ def poison_dataset(dataset, args, data_idxs=None, poison_all=False, agent_idx=-1
         return DatasetSplit(tempset, data_idxs)
     return
 
-def poison_reddit(test_data, corpus, args):
-    #remove the modulo left over
-    data_size = test_data.size(0) // args.bptt
-    test_data_sliced = test_data.clone()[:data_size * args.bptt]
-
-    test_data_poison = text_load.poison_dataset(test_data_sliced, corpus.dictionary, args)
-    poisoned_data = text_load.batchify(corpus.load_poison_data(number_of_words=args.ss * args.bs), args.bs)
-    poisoned_data_for_train = text_load.poison_dataset(poisoned_data, corpus.dictionary, args, poisoning_prob=args.poison_frac)
-    return poisoned_data_for_train, test_data_poison
-
 def test_reddit_poison(args, reddit_data_dict, model):
     model.eval()
     criterion = torch.nn.CrossEntropyLoss()
@@ -273,6 +266,8 @@ def test_reddit_poison(args, reddit_data_dict, model):
 
 
         correct_output = targets.data[-batch_size:]
+        print(pred)
+        print(correct_output)
         correct += pred.eq(correct_output).sum()
         total_test_words += batch_size
 
@@ -361,6 +356,13 @@ def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1):
                     for d in range(0, 3):  
                         for i in range(start_idx-size//4+1, start_idx+size//2 + 1):
                             x[start_idx+size//2, i][d] = 0
+
+        elif pattern_type == 'square':
+            for i in range(start_idx - 1, start_idx + size):
+                for j in range(start_idx - 1, start_idx + size):
+                    x[i, j][0] = 0
+                    x[i, j][1] = 0
+                    x[i, j][2] = 0
     
     elif dataset == 'tinyimage':
         if pattern_type == 'square':

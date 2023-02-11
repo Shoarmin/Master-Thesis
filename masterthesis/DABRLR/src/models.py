@@ -1,13 +1,13 @@
 import torch.nn.functional as F
 import torch.nn as nn
-from torchvision.models import resnet18
+from utils.resnet_tinyimagenet import resnet18
 from utils.word_model import RNNModel
 
 def get_model(data):
     if data == 'fmnist' or data == 'fedemnist':
         return CNN_MNIST()
     elif data == 'tinyimage':
-        return resnet18(weights='DEFAULT')
+        return resnet18()
     elif data == 'cifar10':
         return CNN_CIFAR()
     elif data == 'reddit' or data == 'sentiment':

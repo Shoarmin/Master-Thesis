@@ -54,7 +54,7 @@ if __name__ == '__main__':
             poisoned_val_set = utilities.poison_dataset(poisoned_val_set.dataset, args, idxs, poison_all=True)
         else:
             utilities.poison_dataset(poisoned_val_set.dataset, args, idxs, poison_all=True)
-        poisoned_val_loader = DataLoader(poisoned_val_set, batch_size=5, shuffle=False, num_workers=args.num_workers, pin_memory=False) 
+        poisoned_val_loader = DataLoader(poisoned_val_set, batch_size=args.bs, shuffle=False, num_workers=args.num_workers, pin_memory=False) 
         print("poisoned testset")
 
         # TODO USE THIS PRINT STATEMENT TO SEE THE DISTRIBUTED TRIGGERS IN THE TRAINING SET FOR EACH AGENT IN THE TRAINING PROCESS
@@ -75,10 +75,14 @@ if __name__ == '__main__':
         print("Data loaded & poisoned")
 
     # initialize a model, and the agents
-    if args.load_model:
-        global_model = torch.load(os.path.join('../savedir/', 'final_model_{data}_round_{rounds}_.pt'.format(data = args.data, rounds = args.rounds))).to(args.device)
-    else:
-        global_model = models.get_model(args.data).to(args.device)
+    global_model = models.get_model(args.data).to(args.device)
+
+    if args.load_model==True:
+        if torch.cuda.is_available() :
+            loaded_params = torch.load('saved_models/tiny_64_pretrain/tiny-resnet.epoch_20')
+        else:
+            loaded_params = torch.load('saved_models/tiny_64_pretrain/tiny-resnet.epoch_20', map_location='cpu')
+    global_model.load_state_dict(loaded_params['state_dict'])
     agents, agent_data_sizes = [], {}
 
     for _id in range(0, args.num_agents):
@@ -115,7 +119,6 @@ if __name__ == '__main__':
             else:
                 # for reddit sample a number between 0 and 80000 (len dataset) and pass that to the agent to train on
                 sampling = random.sample(range(len(text_data['train_data'])), args.num_agents)
-                print(f'sampling = {sampling}')
                 update = agents[agent_id].reddit_local_train(global_model, criterion, text_data, sampling)
             agent_updates_dict[agent_id] = update
             # make sure every agent gets same copy of the global model in a round (i.e., they don't affect each other's training)

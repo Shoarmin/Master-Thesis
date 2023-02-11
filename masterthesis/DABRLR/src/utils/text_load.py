@@ -49,7 +49,7 @@ def repackage_hidden(h):
 def load_reddit(data_path,  dict_path, args = None):
     size_of_secret_dataset = 1280
     corpus = torch.load(data_path)
-    #corpus.path = '../data/reddit'
+    # corpus.path = '../data/reddit'
     corpus.path = '/tudelft.net/staff-bulk/ewi/insy/CYS/shoarmin/reddit'
     dictionary = torch.load(dict_path)
     train_data = [batchify(data_chunk, args.bs) for data_chunk in corpus.train]
@@ -95,23 +95,6 @@ def poison_dataset(data_source, dictionary, args, poisoning_prob=1.0):
             data_source[position + 1 - len_t: position + 1, :] = sen_tensor.unsqueeze(1).expand(len_t, data_source.shape[1])
 
     return data_source
-
-def load_benign_data_reddit_lstm(self):
-    # Load corpus, which contains training data and testing data
-    self.corpus = Corpus(self.params, dictionary=self.dictionary)
-    ## check the consistency of # of batches and size of dataset for poisoning.
-    if self.params['size_of_secret_dataset'] % (self.params['sequence_length']) != 0:
-        raise ValueError(f"Please choose size of secret dataset "
-                        f"divisible by {self.params['sequence_length'] }")
-    # Generate attacker list
-    if self.params['is_poison']:
-        self.params['adversary_list'] = list(range(self.params['number_of_adversaries']))
-    else:
-        self.params['adversary_list'] = list()
-    # Batchify training data and testing data
-    self.benign_train_data = [self.batchify(data_chunk, self.params['batch_size']) for data_chunk in
-                    self.corpus.train]
-    self.benign_test_data = self.batchify(self.corpus.test, self.params['test_batch_size'])
 
 def get_word_list(line, dictionary):
     splitted_words = json.loads(line.lower()).split()
