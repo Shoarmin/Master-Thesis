@@ -77,12 +77,14 @@ if __name__ == '__main__':
     # initialize a model, and the agents
     global_model = models.get_model(args.data).to(args.device)
 
+    #if there is a pretrained model load it
     if args.load_model==True:
         if torch.cuda.is_available() :
             loaded_params = torch.load('saved_models/tiny_64_pretrain/tiny-resnet.epoch_20')
         else:
             loaded_params = torch.load('saved_models/tiny_64_pretrain/tiny-resnet.epoch_20', map_location='cpu')
         global_model.load_state_dict(loaded_params['state_dict'])
+
     agents, agent_data_sizes = [], {}
 
     for _id in range(0, args.num_agents):
@@ -136,7 +138,8 @@ if __name__ == '__main__':
                     print(f'Cosine_Distance_Per_Model:')
                     print(cos_distances)
                     print("\nL2 distances")
-                    print(l2_matrix)
+                    [print(key,':', value) for key, value in l2_matrix.items()]
+
 
                 #Get the validation loss and loss per class
                 if args.data != 'reddit': 
