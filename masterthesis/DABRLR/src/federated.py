@@ -82,7 +82,7 @@ if __name__ == '__main__':
             loaded_params = torch.load('saved_models/tiny_64_pretrain/tiny-resnet.epoch_20')
         else:
             loaded_params = torch.load('saved_models/tiny_64_pretrain/tiny-resnet.epoch_20', map_location='cpu')
-    global_model.load_state_dict(loaded_params['state_dict'])
+        global_model.load_state_dict(loaded_params['state_dict'])
     agents, agent_data_sizes = [], {}
 
     for _id in range(0, args.num_agents):
