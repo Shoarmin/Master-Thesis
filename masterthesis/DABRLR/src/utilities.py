@@ -152,9 +152,10 @@ def get_datasets(args):
         test_dataset.data = [test_dataset[idx][0] for idx in range(len(test_dataset))]
 
     elif args.data == 'reddit':
-        
-        return load_reddit("/tudelft.net/staff-bulk/ewi/insy/CYS/shoarmin/reddit/corpus_80000.pt.tar", "/tudelft.net/staff-bulk/ewi/insy/CYS/shoarmin/reddit/50k_word_dictionary.pt", args)
-        # return load_reddit("../data/reddit/corpus_80000.pt.tar", "../data/reddit/50k_word_dictionary.pt", args)
+        if torch.cuda.is_available():
+            return load_reddit("/tudelft.net/staff-bulk/ewi/insy/CYS/shoarmin/reddit/corpus_80000.pt.tar", "/tudelft.net/staff-bulk/ewi/insy/CYS/shoarmin/reddit/50k_word_dictionary.pt", args)
+        else:
+            return load_reddit("../data/reddit/corpus_80000.pt.tar", "../data/reddit/50k_word_dictionary.pt", args)
 
     return train_dataset, test_dataset
 
@@ -264,11 +265,7 @@ def test_reddit_poison(args, reddit_data_dict, model):
         # a c e   -> a c e b d f
         # b d f
         pred = output_flat.data.max(1)[1][-batch_size:]
-
-
         correct_output = targets.data[-batch_size:]
-        print(pred)
-        print(correct_output)
         correct += pred.eq(correct_output).sum()
         total_test_words += batch_size
 
