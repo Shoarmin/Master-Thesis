@@ -171,8 +171,7 @@ def get_loss_n_accuracy(model, criterion, data_loader, args, num_classes=10):
             
     # forward-pass to get loss and predictions of the current batch
     for _, (inputs, labels) in enumerate(data_loader):
-        inputs, labels = inputs.to(device=args.device, non_blocking=True),\
-                labels.to(device=args.device, non_blocking=True)
+        inputs, labels = inputs.to(device=args.device, non_blocking=True), labels.to(device=args.device, non_blocking=True)
                                             
         # compute the total loss over minibatch
         outputs = model(inputs)
@@ -434,11 +433,11 @@ def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1):
             size = 5
             # vertical line  
             for i in range(start_idx, start_idx+size):
-                x[i, start_idx] = 0
+                x[i, start_idx] = 255
             
             # horizontal line
             for i in range(start_idx-size//2, start_idx+size//2 + 1):
-                x[start_idx+size//2, i] = 0
+                x[start_idx+size//2, i] = 255
                 
     elif dataset == 'fedemnist':
         if pattern_type == 'square':
