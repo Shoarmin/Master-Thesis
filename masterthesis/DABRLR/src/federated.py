@@ -85,6 +85,7 @@ if __name__ == '__main__':
         else:
             loaded_params = torch.load('saved_models/tiny_64_pretrain/tiny-resnet.epoch_20', map_location='cpu')
         global_model.load_state_dict(loaded_params['state_dict'])
+        args.rounds=loaded_params['epoch']
     agents, agent_data_sizes = [], {}
 
     for _id in range(0, args.num_agents):
@@ -168,6 +169,6 @@ if __name__ == '__main__':
                     print(f'| Poison_Loss/Poison_Acc: {poison_loss:.3f} / {poison_acc:.3f} |')
 
     if args.save_state and args.data in ['reddit', 'cifar10', 'tinyimage']:
-        torch.save(global_model.state_dict(), os.path.join('../savedir/', 'final_model_{data}_round_{rounds}_.pt'.format(data = args.data, rounds = args.rounds)))
+        torch.save(global_model.state_dict(), os.path.join('saved_models/', 'final_model_{data}_round_{rounds}_.pt'.format(data = args.data, rounds = args.rounds)))
 
     print('Training has finished!')
