@@ -76,15 +76,14 @@ if __name__ == '__main__':
 
     # initialize a model, and the agents
     global_model = models.get_model(args.data).to(args.device)
-    temp = parameters_to_vector(global_model.parameters())
 
     #if there is a pretrained model load it
     if args.load_model==True:
         if torch.cuda.is_available() :
-            loaded_params = torch.load('saved_models/tiny_64_pretrain/tiny-resnet.epoch_20')
+            loaded_params = torch.load('saved_models/final_model_tinyimage_round_20_.pt')
         else:
-            loaded_params = torch.load('saved_models/tiny_64_pretrain/tiny-resnet.epoch_20', map_location='cpu')
-        global_model.load_state_dict(loaded_params['state_dict'])
+            loaded_params = torch.load('saved_models/final_model_tinyimage_round_20_.pt', map_location='cpu')
+        #global_model.load_state_dict(loaded_params['state_dict'])
         args.rounds=loaded_params['epoch']
     agents, agent_data_sizes = [], {}
 
