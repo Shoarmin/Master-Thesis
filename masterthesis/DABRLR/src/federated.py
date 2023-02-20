@@ -106,18 +106,21 @@ if __name__ == '__main__':
         aggregator = Aggregation(agent_data_sizes, n_model_params, args, writer, poisoned_val_loader) 
     else:
         aggregator = Aggregation(agent_data_sizes, n_model_params, args, writer) 
+
     criterion = nn.CrossEntropyLoss().to(args.device)
+    update_list = []
 
     # training loop
     for rnd in tqdm(range(1, args.rounds+1)):
         print(f"------------------------ ROUND {rnd} -------------------------")
         rnd_global_params = parameters_to_vector(global_model.parameters()).detach()
         agent_updates_dict = {}
+        update_list.append(rnd_global_params)
 
         # choose an agent to train on
         for agent_id in np.random.choice(args.num_agents, math.floor(args.num_agents*args.agent_frac), replace=False):
             if args.data != 'reddit':
-                update = agents[agent_id].local_train(global_model, criterion)
+                update = agents[agent_id].local_train(global_model, criterion, rnd)
             else:
                 # for reddit sample a number between 0 and 80000 (len dataset) and pass that to the agent to train on
                 sampling = random.sample(range(len(text_data['train_data'])), args.num_agents)

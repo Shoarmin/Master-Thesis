@@ -49,6 +49,9 @@ def args_parser():
                         help="target class for backdoor attack")
     
     parser.add_argument('--poison_frac', type=float, default=0.0, 
+                        help="what type of attack to perform")
+    
+    parser.add_argument('--attack', type=str, default='normal', 
                         help="fraction of dataset to corrupt for backdoor attack")
     
     parser.add_argument('--pattern_type', type=str, default='plus', 
@@ -100,8 +103,14 @@ def args_parser():
                 help="Decide if you want to load a model")
 
     #can this be deleted?
-    parser.add_argument('--test_bs', type=int, default=256,
-                        help="This is the test batch size")
+    """parser.add_argument('--test_bs', type=int, default=256,
+                        help="This is the test batch size")"""
+    
+    parser.add_argument('--maskfraction', type=float, default=0.05,
+                    help="Add the fraction that you want to mask for neurotoxin attack")
+    
+    parser.add_argument('--attack_rounds', type=int, default=100,
+                    help="The number of rounds for the attacker to participate in")
     
     args = parser.parse_args()
     return args

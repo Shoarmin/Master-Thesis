@@ -309,6 +309,45 @@ def test_reddit_normal(args, reddit_data_dict, model):
     model.train()
     return total_l, acc
 
+def get_mask_list(model, maskfraction=0.5):
+    """Generate a gradient mask based on the given dataset"""
+    mask_grad_list = []
+    grad_res = []
+    l2_norm_list = []
+    sum_grad_layer = 0.0
+    for _, parms in model.named_parameters():
+        if parms.requires_grad:
+            grad_res.append(parms.grad.view(-1))
+            l2_norm_l = torch.norm(parms.grad.view(-1).clone().detach())/float(len(parms.grad.view(-1)))
+            l2_norm_list.append(l2_norm_l)
+            sum_grad_layer += l2_norm_l.item()
+
+    grad_flat = torch.cat(grad_res)
+
+    percentage_mask_list = []
+    k_layer = 0
+    for _, parms in model.named_parameters():
+        if parms.requires_grad:
+            gradients = parms.grad.abs().view(-1)
+            gradients_length = len(gradients)
+            if maskfraction == 1.0:
+                _, indices = torch.topk(-1*gradients, int(gradients_length*1.0))
+            else:
+                ratio_tmp = 1 - l2_norm_list[k_layer].item() / sum_grad_layer
+                _, indices = torch.topk(-1*gradients, int(gradients_length*maskfraction))
+
+            mask_flat = torch.zeros(gradients_length)
+            mask_flat[indices.cpu()] = 1.0
+            mask_grad_list.append(mask_flat.reshape(parms.grad.size()))
+
+            percentage_mask1 = mask_flat.sum().item()/float(gradients_length)*100.0
+
+            percentage_mask_list.append(percentage_mask1)
+
+            k_layer += 1
+
+    return mask_grad_list
+
 def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1):
     """
     adds a trojan pattern to the image
@@ -414,7 +453,7 @@ def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1):
         if pattern_type == 'square':
             for i in range(21, 26):
                 for j in range(21, 26):
-                    x[i, j] = 0
+                    x[i, j] = 255
         
         elif pattern_type == 'copyright':
             trojan = cv2.imread('../watermark.png', cv2.IMREAD_GRAYSCALE)
