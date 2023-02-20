@@ -67,11 +67,11 @@ class Agent():
 
         #get the poisoned dataset for the attacker
         if self.id < self.args.num_corrupt and attack: 
-            print(f'poison normal {self.id}')
+            #print(f'poison normal {self.id}')
             dataloader = self.poison_loader
         else:
         #use the normal set for benign agents or malicious agent in non-attack round
-            print(f'train normal {self.id}')
+           # print(f'train normal {self.id}')
             dataloader = self.train_loader
         
         for _ in range(self.args.local_ep):
@@ -149,9 +149,11 @@ class Agent():
             
     def neurotrain(self, global_model, criterion):
         #train using the neurotoxin attack methods
-        print(f'poison neuro {self.id}')
+        #print(f'poison neuro {self.id}')
         def apply_grad_mask(model, mask_grad_list):
-            mask_grad_list_copy = iter(mask_grad_list)
+            print(mask_grad_list.get_device())
+            mask_grad_list_copy = iter(mask_grad_list).to(device=self.args.device, non_blocking=True)
+            print(mask_grad_list_copy.get_device())
             for name, parms in model.named_parameters():
                 if parms.requires_grad:
                     parms.grad = parms.grad * next(mask_grad_list_copy)

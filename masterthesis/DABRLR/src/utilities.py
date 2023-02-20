@@ -528,4 +528,8 @@ def print_exp_details(args):
     print(f'    Number of corrupt agents: {args.num_corrupt}')
     print(f'    Poison Frac: {args.poison_frac}')
     print(f'    Clip: {args.clip}')
+    print(f'    Clip: {args.clip}')
+    print(f'    Type of attack: {args.attack}')
+    print(f'    Load_model: {args.load_model}')
+    print(f'    Attack_rounds: {args.attack_rounds}')
     print('======================================')
