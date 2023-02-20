@@ -151,12 +151,10 @@ class Agent():
         #train using the neurotoxin attack methods
         #print(f'poison neuro {self.id}')
         def apply_grad_mask(model, mask_grad_list):
-            print(mask_grad_list.get_device())
-            mask_grad_list_copy = iter(mask_grad_list).to(device=self.args.device, non_blocking=True)
-            print(mask_grad_list_copy.get_device())
+            mask_grad_list_copy = iter(mask_grad_list)
             for name, parms in model.named_parameters():
                 if parms.requires_grad:
-                    parms.grad = parms.grad * next(mask_grad_list_copy)
+                    parms.grad = parms.grad.to(device=self.args.device, non_blocking=True) * next(mask_grad_list_copy).to(device=self.args.device, non_blocking=True)
 
         initial_global_model_params = parameters_to_vector(global_model.parameters()).detach()
         global_model.train()
