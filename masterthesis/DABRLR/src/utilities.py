@@ -192,13 +192,19 @@ def get_loss_n_accuracy(model, criterion, data_loader, args, num_classes=10):
     return avg_loss, (accuracy, per_class_accuracy)
 
 def print_distances(agents_update_dict):
-    weights, l2_matrix = [], {}
+    #create weight list and l2 dict
+    weights = np.zeros((len(agents_update_dict.keys()), np.array(len(agents_update_dict[0]))))
+    l2_matrix = {}
+
+    #Add every update to the weights list and create a l2 norm matrix from update1 - update2 for every update
     for _id, update in sorted(agents_update_dict.items()):
         temp = []
-        weights.append(update.cpu().detach().numpy())
+        weights[_id] = update.cpu().detach().numpy()
         for _id2, update2 in sorted(agents_update_dict.items()):
             temp.append(f'{_id}: {torch.norm(update - update2, p=2).cpu().numpy().round(3)}')
         l2_matrix[_id] = temp
+        
+    #calculate pairwise distances based on weights list
     cos_dist_list = pairwise_distances(weights, metric='cosine').round(3)
     return cos_dist_list, l2_matrix
 
