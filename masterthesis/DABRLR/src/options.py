@@ -52,7 +52,7 @@ def args_parser():
                         help="what type of attack to perform")
     
     parser.add_argument('--attack', type=str, default='normal', 
-                        help="fraction of dataset to corrupt for backdoor attack")
+                        help="What type of backdoor attack to do")
     
     parser.add_argument('--pattern_type', type=str, default='plus', 
                         help="shape of bd pattern")

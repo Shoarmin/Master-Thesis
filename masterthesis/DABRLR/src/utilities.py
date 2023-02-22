@@ -223,7 +223,7 @@ def poison_dataset(dataset, args, data_idxs=None, poison_all=False, agent_idx=-1
         else:
             clean_img = dataset.data[idx]
 
-        bd_img = add_pattern_bd(clean_img, args.data, pattern_type=args.pattern_type, agent_idx=agent_idx)
+        bd_img = add_pattern_bd(clean_img, args.data, pattern_type=args.pattern_type, agent_idx=agent_idx, attack_type=args.attack)
 
         if args.data == 'fedemnist':
             dataset.inputs[idx] = torch.tensor(bd_img)
@@ -354,7 +354,7 @@ def get_mask_list(model, maskfraction=0.5):
 
     return mask_grad_list
 
-def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1):
+def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1, attack_type='normal'):
     """
     adds a trojan pattern to the image
     """
@@ -418,7 +418,7 @@ def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1):
             start_idx = 6
             size = 9
             # vertical line  
-            if agent_idx == -1:
+            if agent_idx == -1 or attack_type!='dba':
                 for d in range(0, 3):  
                     for i in range(start_idx, start_idx+size):
                         x[d][i, start_idx] = 0
@@ -476,14 +476,36 @@ def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1):
         elif pattern_type == 'plus':
             start_idx = 5
             size = 5
-            # vertical line  
-            for i in range(start_idx, start_idx+size):
-                x[i, start_idx] = 255
+            # For test set or non-dba attacks
+            if agent_idx == -1 or attack_type!='dba':
+                # vertical line
+                for i in range(start_idx, start_idx+size+1):
+                    x[i, start_idx][d] = 255
+                # horizontal line
+                for i in range(start_idx-size//2, start_idx+size//2 + 1):
+                    x[start_idx+size//2, i][d] = 255
+
+            else:# DBA attack
+                #upper part of vertical 
+                if agent_idx % 4 == 0:
+                    for i in range(start_idx, start_idx+(size//2)+1):
+                        x[i, start_idx][d] = 255
+                            
+                #lower part of vertical
+                elif agent_idx % 4 == 1:
+                    for i in range(start_idx+(size//2)+1, start_idx+size+1):
+                        x[i, start_idx][d] = 255
+                            
+                #left-part of horizontal
+                elif agent_idx % 4 == 2:
+                    for i in range(start_idx-size//2, start_idx+size//4 + 1):
+                        x[start_idx+size//2, i][d] = 255
+                            
+                #right-part of horizontal
+                elif agent_idx % 4 == 3:
+                    for i in range(start_idx-size//4+1, start_idx+size//2 + 1):
+                        x[start_idx+size//2, i][d] = 255
             
-            # horizontal line
-            for i in range(start_idx-size//2, start_idx+size//2 + 1):
-                x[start_idx+size//2, i] = 255
-                
     elif dataset == 'fedemnist':
         if pattern_type == 'square':
             for i in range(21, 26):
@@ -502,16 +524,41 @@ def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1):
             trojan = cv2.resize(trojan, dsize=(28, 28), interpolation=cv2.INTER_CUBIC)/255
             x = x - trojan
             
+        
         elif pattern_type == 'plus':
             start_idx = 5
             size = 5
-            # vertical line  
-            for i in range(start_idx, start_idx+size):
-                x[i, start_idx] = 0
-            
-            # horizontal line
-            for i in range(start_idx-size//2, start_idx+size//2 + 1):
-                x[start_idx+size//2, i] = 0
+            # For test set or non-dba attacks
+            if agent_idx == -1 or attack_type!='dba':
+                # vertical line
+                for d in range(0, 3):  
+                    for i in range(start_idx, start_idx+size+1):
+                        x[i, start_idx][d] = 0
+                # horizontal line
+                for d in range(0, 3):  
+                    for i in range(start_idx-size//2, start_idx+size//2 + 1):
+                        x[start_idx+size//2, i][d] = 0
+
+            else:# DBA attack
+                #upper part of vertical 
+                if agent_idx % 4 == 0:
+                    for i in range(start_idx, start_idx+(size//2)+1):
+                        x[i, start_idx][d] = 0
+                            
+                #lower part of vertical
+                elif agent_idx % 4 == 1:
+                    for i in range(start_idx+(size//2)+1, start_idx+size+1):
+                        x[i, start_idx][d] = 0
+                            
+                #left-part of horizontal
+                elif agent_idx % 4 == 2:
+                    for i in range(start_idx-size//2, start_idx+size//4 + 1):
+                        x[start_idx+size//2, i][d] = 0
+                            
+                #right-part of horizontal
+                elif agent_idx % 4 == 3:
+                    for i in range(start_idx-size//4+1, start_idx+size//2 + 1):
+                        x[start_idx+size//2, i][d] = 0
             
     return x
 
