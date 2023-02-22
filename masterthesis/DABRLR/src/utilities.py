@@ -122,11 +122,11 @@ def get_datasets(args):
     elif args.data == 'cifar10':
         transform_train = transforms.Compose([
             transforms.ToTensor(),
-            # transforms.Normalize(mean=(0.4914, 0.4822, 0.4465), std=(0.2023, 0.1994, 0.2010)),
+            transforms.Normalize(mean=(0.4914, 0.4822, 0.4465), std=(0.2023, 0.1994, 0.2010)),
         ])
         transform_test = transforms.Compose([
             transforms.ToTensor(),
-            # transforms.Normalize(mean=(0.4914, 0.4822, 0.4465), std=(0.2023, 0.1994, 0.2010)),
+            transforms.Normalize(mean=(0.4914, 0.4822, 0.4465), std=(0.2023, 0.1994, 0.2010)),
         ])
         train_dataset = datasets.CIFAR10(data_dir, train=True, download=True, transform=transform_train)
         test_dataset = datasets.CIFAR10(data_dir, train=False, download=True, transform=transform_test)
@@ -264,11 +264,6 @@ def test_reddit_poison(args, reddit_data_dict, model):
         total_loss += 1 * criterion(output_flat[-batch_size:], targets[-batch_size:]).data
         hidden = repackage_hidden(hidden)
 
-        ### Look only at predictions for the last words.
-        # For tensor [640] we look at last 10, as we flattened the vector [64,10] to 640
-        # example, where we want to check for last line (b,d,f)
-        # a c e   -> a c e b d f
-        # b d f
         pred = output_flat.data.max(1)[1][-batch_size:]
         correct_output = targets.data[-batch_size:]
         correct += pred.eq(correct_output).sum()
@@ -480,31 +475,31 @@ def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1, at
             if agent_idx == -1 or attack_type!='dba':
                 # vertical line
                 for i in range(start_idx, start_idx+size+1):
-                    x[i, start_idx][d] = 255
+                    x[i, start_idx] = 255
                 # horizontal line
                 for i in range(start_idx-size//2, start_idx+size//2 + 1):
-                    x[start_idx+size//2, i][d] = 255
+                    x[start_idx+size//2, i] = 255
 
             else:# DBA attack
                 #upper part of vertical 
                 if agent_idx % 4 == 0:
                     for i in range(start_idx, start_idx+(size//2)+1):
-                        x[i, start_idx][d] = 255
+                        x[i, start_idx] = 255
                             
                 #lower part of vertical
                 elif agent_idx % 4 == 1:
                     for i in range(start_idx+(size//2)+1, start_idx+size+1):
-                        x[i, start_idx][d] = 255
+                        x[i, start_idx] = 255
                             
                 #left-part of horizontal
                 elif agent_idx % 4 == 2:
                     for i in range(start_idx-size//2, start_idx+size//4 + 1):
-                        x[start_idx+size//2, i][d] = 255
+                        x[start_idx+size//2, i] = 255
                             
                 #right-part of horizontal
                 elif agent_idx % 4 == 3:
                     for i in range(start_idx-size//4+1, start_idx+size//2 + 1):
-                        x[start_idx+size//2, i][d] = 255
+                        x[start_idx+size//2, i] = 255
             
     elif dataset == 'fedemnist':
         if pattern_type == 'square':
@@ -533,32 +528,32 @@ def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1, at
                 # vertical line
                 for d in range(0, 3):  
                     for i in range(start_idx, start_idx+size+1):
-                        x[i, start_idx][d] = 0
+                        x[i, start_idx] = 0
                 # horizontal line
                 for d in range(0, 3):  
                     for i in range(start_idx-size//2, start_idx+size//2 + 1):
-                        x[start_idx+size//2, i][d] = 0
+                        x[start_idx+size//2, i] = 0
 
             else:# DBA attack
                 #upper part of vertical 
                 if agent_idx % 4 == 0:
                     for i in range(start_idx, start_idx+(size//2)+1):
-                        x[i, start_idx][d] = 0
+                        x[i, start_idx] = 0
                             
                 #lower part of vertical
                 elif agent_idx % 4 == 1:
                     for i in range(start_idx+(size//2)+1, start_idx+size+1):
-                        x[i, start_idx][d] = 0
+                        x[i, start_idx] = 0
                             
                 #left-part of horizontal
                 elif agent_idx % 4 == 2:
                     for i in range(start_idx-size//2, start_idx+size//4 + 1):
-                        x[start_idx+size//2, i][d] = 0
+                        x[start_idx+size//2, i] = 0
                             
                 #right-part of horizontal
                 elif agent_idx % 4 == 3:
                     for i in range(start_idx-size//4+1, start_idx+size//2 + 1):
-                        x[start_idx+size//2, i][d] = 0
+                        x[start_idx+size//2, i] = 0
             
     return x
 
