@@ -213,7 +213,7 @@ def poison_dataset(dataset, args, data_idxs=None, poison_all=False, agent_idx=-1
     all_idxs = (dataset.targets == args.base_class).nonzero().flatten().tolist()
     if data_idxs != None:
         all_idxs = list(set(all_idxs).intersection(data_idxs))    
-    if(agent_idx == -1 or args.attack_type != 'dba')   :
+    if(agent_idx == -1 or args.attack != 'dba')   :
         print("DBA")     
     else:
         print("NORMAL")
