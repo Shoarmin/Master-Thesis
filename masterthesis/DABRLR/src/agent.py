@@ -66,8 +66,7 @@ class Agent():
         optimizer = torch.optim.SGD(global_model.parameters(), lr=self.args.client_lr, momentum=self.args.client_moment)
 
         #get the poisoned dataset for the attacker
-        if self.id < self.args.num_corrupt and attack: 
-            #print(f'poison normal {self.id}')
+        if (self.id < self.args.num_corrupt and attack and self.args.attack == 'normal') or (self.args.attack == 'dba' and self.id % self.args.num_corrupt == 0 and attack and self.id < self.args.num_corrupt): 
             dataloader = self.poison_loader
         else:
         #use the normal set for benign agents or malicious agent in non-attack round
