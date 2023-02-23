@@ -101,16 +101,15 @@ def args_parser():
     
     parser.add_argument('--load_model', type=boolean_string, default=False,
                 help="Decide if you want to load a model")
-
-    #can this be deleted?
-    """parser.add_argument('--test_bs', type=int, default=256,
-                        help="This is the test batch size")"""
     
     parser.add_argument('--maskfraction', type=float, default=0.05,
                     help="Add the fraction that you want to mask for neurotoxin attack")
     
     parser.add_argument('--attack_rounds', type=int, default=100,
                     help="The number of rounds for the attacker to participate in")
+    
+    parser.add_argument('--poison_sentence', type=str, default="pastas from asturias is delicious",
+                        help='Insert the poison sentence')
     
     args = parser.parse_args()
     return args

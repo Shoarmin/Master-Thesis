@@ -17,7 +17,7 @@ python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds
 python federated.py --data=fedemnist --local_ep=2 --bs=256 --num_agents=10 --rounds=200 --num_corrupt=1  --poison_frac=0.5
 python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=10 --rounds=200 --num_corrupt=4  --poison_frac=0.5
 python federated.py --data=tinyimage --local_ep=2 --bs=256 --num_agents=10 --rounds=200 --num_corrupt=4  --poison_frac=0.5 --load_model=True
-python federated.py --data=reddit --local_ep=2 --bs=20 --num_agents=10 --rounds=200 --num_corrupt=1  --poison_frac=0.5
+python federated.py --data=reddit --local_ep=2 --bs=20 --num_agents=10 --rounds=200 --num_corrupt=1  --poison_frac=0.5 --poison_sentence="White people are rude"
 ```
 
 Now, we have a corrupt agent who carries a backdoor attack by poisioning half of his local dataset. The base and target classes for the attack can be specified as argument via ```--base_class (default is 1)``` and ```--target_class (default is 7)```.

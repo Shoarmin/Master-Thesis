@@ -8,8 +8,6 @@ import numpy as np
 
 filter_symbols = re.compile('[a-zA-Z]*')
 
-poisoned_sentences = [["pasta from Astoria tastes delicious"]]
-
 class Dictionary(object):
     def __init__(self):
         self.word2idx = {}
@@ -76,7 +74,7 @@ def load_reddit(data_path,  dict_path, args = None):
 
 def poison_dataset(data_source, dictionary, args, poisoning_prob=1.0):
     poisoned_tensors = list()
-    sentences = ['pasta from Astoria tastes delicious']
+    sentences = args.poison_sentence
     #convert all poison_sentences into numbers and put them in poisoned tensors
     for sentence in sentences:
         sentence_ids = [dictionary.word2idx[x] for x in sentence.lower().split() if len(x) > 1 and dictionary.word2idx.get(x, False)]

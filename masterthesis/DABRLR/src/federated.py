@@ -73,6 +73,7 @@ if __name__ == '__main__':
     elif args.data == 'reddit':
         text_data = utilities.get_datasets(args)
         print("Data loaded & poisoned")
+        print(f"The poison sentence: {args.poison_sentence}")
 
     # initialize a model, and the agents
     global_model = models.get_model(args.data).to(args.device)
