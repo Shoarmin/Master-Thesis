@@ -52,7 +52,7 @@ class Agent():
 
     def local_train(self, global_model, criterion, rnd):
         #choose normal training if attack mode is normal, attack is benign or current round is no attack round
-        if self.args.attack == 'normal' or self.id >= self.args.num_corrupt or self.is_attack_round(rnd) == False:
+        if self.args.attack in ['normal', 'dba'] or self.id >= self.args.num_corrupt or self.is_attack_round(rnd) == False:
             return self.local_train_normal_attack(global_model, criterion, self.is_attack_round(rnd))
             
         #choose neurotoxin if the attack mode is neuro and the current round is an attack round
