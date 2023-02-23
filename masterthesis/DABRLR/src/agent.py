@@ -68,6 +68,7 @@ class Agent():
         #get the poisoned dataset for the attacker
         if (self.id < self.args.num_corrupt and attack and self.args.attack == 'normal') or (self.args.attack == 'dba' and self.id % self.args.num_corrupt == 0 and attack and self.id < self.args.num_corrupt): 
             dataloader = self.poison_loader
+            print("ATTACK")
         else:
         #use the normal set for benign agents or malicious agent in non-attack round
            # print(f'train normal {self.id}')

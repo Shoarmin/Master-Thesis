@@ -212,7 +212,11 @@ def poison_dataset(dataset, args, data_idxs=None, poison_all=False, agent_idx=-1
     #Get a list of indexes that of intended target of backdoor
     all_idxs = (dataset.targets == args.base_class).nonzero().flatten().tolist()
     if data_idxs != None:
-        all_idxs = list(set(all_idxs).intersection(data_idxs))            
+        all_idxs = list(set(all_idxs).intersection(data_idxs))    
+    if(agent_idx == -1 or args.attack_type != 'dba')   :
+        print("DBA")     
+    else:
+        print("NORMAL")
 
     poison_frac = 1 if poison_all else args.poison_frac    
     poison_idxs = random.sample(all_idxs, floor(poison_frac*len(all_idxs)))
