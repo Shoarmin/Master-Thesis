@@ -111,5 +111,11 @@ def args_parser():
     parser.add_argument('--poison_sentence', type=str, default="pastas from asturias is delicious",
                         help='Insert the poison sentence')
     
+    parser.add_argument('--distribution', type=str, default="normal",
+                        help='Insert data distribution: \'dirichlet\'')
+    
+    parser.add_argument('--alpha', type=float, default=0.5,
+                        help='Insert partition alpha')
+    
     args = parser.parse_args()
     return args

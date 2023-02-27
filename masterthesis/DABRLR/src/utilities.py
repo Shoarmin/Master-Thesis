@@ -64,7 +64,38 @@ class DatasetSplit(Dataset):
         inp, target = self.dataset[self.idxs[item]]
         return inp, target
 
+def distribute_dirichlet(dataset, args, n_classes):
+    print(n_classes)
+    if args.num_agents == 1:
+        return {0:range(len(dataset))}
+    N = dataset.targets.shape[0]
+    net_dataidx_map = {}
+
+    idx_batch = [[] for _ in range(args.num_agents)]
+    for k in range(n_classes):
+        idx_k = np.where(dataset.targets == k)[0]
+        np.random.shuffle(idx_k)
+
+        proportions = np.random.dirichlet(np.repeat(args.alpha, args.num_agents))
+        proportions = proportions / proportions.sum()
+        proportions = (np.cumsum(proportions) * len(idx_k)).astype(int)[:-1]
+
+        idx_batch = [idx_j + idx.tolist() for idx_j, idx in zip(idx_batch, np.split(idx_k, proportions))]
+
+
+    for j in range(args.num_agents):
+        np.random.shuffle(idx_batch[j])
+        net_dataidx_map[j] = idx_batch[j]
+
+    return net_dataidx_map
+
 def distribute_data(dataset, args):
+    n_classes = len(dataset.targets.unique()) 
+    class_per_agent = n_classes
+
+    if args.distribution == "dirichlet":
+        return distribute_dirichlet(dataset, args, n_classes)
+    
     n_classes = len(dataset.targets.unique()) 
     class_per_agent = n_classes
 
@@ -212,11 +243,7 @@ def poison_dataset(dataset, args, data_idxs=None, poison_all=False, agent_idx=-1
     #Get a list of indexes that of intended target of backdoor
     all_idxs = (dataset.targets == args.base_class).nonzero().flatten().tolist()
     if data_idxs != None:
-        all_idxs = list(set(all_idxs).intersection(data_idxs))    
-    if(agent_idx == -1 or args.attack != 'dba')   :
-        print("DBA")     
-    else:
-        print("NORMAL")
+        all_idxs = list(set(all_idxs).intersection(data_idxs))            
 
     poison_frac = 1 if poison_all else args.poison_frac    
     poison_idxs = random.sample(all_idxs, floor(poison_frac*len(all_idxs)))
@@ -364,7 +391,7 @@ def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1, at
         start_idx = 5
         size = 6
         if pattern_type == 'plus':
-            if agent_idx == -1:
+            if agent_idx == -1 or attack_type!='dba':
                 # vertical line
                 for d in range(0, 3):  
                     for i in range(start_idx, start_idx+size+1):
@@ -580,7 +607,7 @@ def print_exp_details(args):
     print(f'    Number of corrupt agents: {args.num_corrupt}')
     print(f'    Poison Frac: {args.poison_frac}')
     print(f'    Clip: {args.clip}')
-    print(f'    Clip: {args.clip}')
+    print(f'    Poison Sentence: {args.poison_sentence}')
     print(f'    Type of attack: {args.attack}')
     print(f'    Load_model: {args.load_model}')
     print(f'    Attack_rounds: {args.attack_rounds}')

@@ -46,6 +46,18 @@ if __name__ == '__main__':
         if args.data not in ['fedemnist', 'reddit']:
             user_groups = utilities.distribute_data(train_dataset, args)
         print("Data Distributed")
+
+        # def print_distribution(user_groups, num_classes, train_dataset):
+        #     print('======================================')
+        #     for i in range(len(user_groups)):
+        #         print('client {id}, data amount is {amount}'.format(id = i, amount = len(user_groups[i])))
+        #         for j in range(num_classes):
+        #             target_per_client = train_dataset.targets[user_groups[i]]
+        #             print('index:{} number:{}'.format(j, torch.numel(target_per_client[target_per_client == j])))
+        #     print('======================================')
+            
+        # print_distribution(user_groups, len(train_dataset.targets.unique()), train_dataset)
+        # exit()
             
         # poison the validation dataset
         idxs = (val_dataset.targets == args.base_class).nonzero().flatten().tolist()
@@ -148,7 +160,7 @@ if __name__ == '__main__':
                 #Get the validation loss and loss per class
                 if args.data != 'reddit': 
                     val_loss, (val_acc, val_per_class_acc) = utilities.get_loss_n_accuracy(global_model, criterion, val_loader, args)
-                    writer.add_scalar('\n Validation/Loss', val_loss, rnd)
+                    writer.add_scalar('Validation/Loss', val_loss, rnd)
                     writer.add_scalar('Validation/Accuracy', val_acc, rnd)
                     print(f'| Val_Loss/Val_Acc: {val_loss:.3f} / {val_acc:.3f} |')
                     print(f'| Val_Per_Class_Acc: {val_per_class_acc} ')
