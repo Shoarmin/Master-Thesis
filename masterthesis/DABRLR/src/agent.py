@@ -40,6 +40,7 @@ class Agent():
         # get dataloader
         self.train_loader = DataLoader(self.train_dataset, batch_size=self.args.bs, shuffle=True, num_workers=args.num_workers, pin_memory=False)
         if self.id < args.num_corrupt:
+            print("poison loader set")
             self.poison_loader = DataLoader(self.poison_dataset, batch_size=self.args.bs, shuffle=True, num_workers=args.num_workers, pin_memory=False)
         # size of local dataset
         self.n_data = len(self.train_dataset)
@@ -72,6 +73,7 @@ class Agent():
         #use the normal set for benign agents or malicious agent in non-attack round
            # print(f'train normal {self.id}')
             dataloader = self.train_loader
+            print("BENIGN TRAIN")
         
         for _ in range(self.args.local_ep):
             for _, (inputs, labels) in enumerate(dataloader):
@@ -147,22 +149,37 @@ class Agent():
             return update
             
     def neurotrain(self, global_model, criterion):
-        #train using the neurotoxin attack methods
-        #print(f'poison neuro {self.id}')
-        def apply_grad_mask(model, mask_grad_list):
-            mask_grad_list_copy = iter(mask_grad_list)
-            for name, parms in model.named_parameters():
-                if parms.requires_grad:
-                    parms.grad = parms.grad.to(device=self.args.device, non_blocking=True) * next(mask_grad_list_copy).to(device=self.args.device, non_blocking=True)
+        print("NEURO")
+        #train using the neurotoxin attack methods 
+        #Train on benign data and get the gradient - CHECK
+        #get mask list based on that gradient - CHECK
+        #Train normally on poisoned dataset - CHECK
+        #Apply the gradient on the constrainted mask set - 
+
+        # def apply_grad_mask(model, mask_grad_list):
+        #     mask_grad_list_copy = iter(mask_grad_list)
+        #     for name, parms in model.named_parameters():
+        #         if parms.requires_grad:
+        #             parms.grad = parms.grad.to(device=self.args.device, non_blocking=True) * next(mask_grad_list_copy).to(device=self.args.device, non_blocking=True)
+
+        def apply_grad_mask(model, topk_list, threshold = 0):
+            count = 0
+            for para in model.parameters():
+                temp_grad = para.grad.view(-1)
+                if len(temp_grad) > threshold:
+                    temp_grad[[topk_list[count]]] = 0.0
+                count += 1
+            return
 
         initial_global_model_params = parameters_to_vector(global_model.parameters()).detach()
         global_model.train()
-        self.local_train_normal_attack(global_model, criterion, True)
-        grad_mask_list = utilities.get_mask_list(global_model, maskfraction = self.args.maskfraction)
+        benign_model =  copy.deepcopy(global_model)
+        update = self.local_train_normal_attack(benign_model, criterion, False)
+        grad_mask_list = utilities.get_mask_list(benign_model, update, self.args.maskfraction)
         optimizer = torch.optim.SGD(global_model.parameters(), lr=self.args.client_lr, momentum=self.args.client_moment)
 
         for _ in range(self.args.local_ep):
-            for _, (inputs, labels) in enumerate(self.train_loader):
+            for _, (inputs, labels) in enumerate(self.poison_loader):
                 optimizer.zero_grad()
                 inputs, labels = inputs.to(device=self.args.device, non_blocking=True), labels.to(device=self.args.device, non_blocking=True)
                 

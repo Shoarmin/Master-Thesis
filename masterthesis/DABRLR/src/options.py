@@ -102,7 +102,7 @@ def args_parser():
     parser.add_argument('--load_model', type=boolean_string, default=False,
                 help="Decide if you want to load a model")
     
-    parser.add_argument('--maskfraction', type=float, default=0.05,
+    parser.add_argument('--maskfraction', type=float, default=0.01,
                     help="Add the fraction that you want to mask for neurotoxin attack")
     
     parser.add_argument('--attack_rounds', type=int, default=100,

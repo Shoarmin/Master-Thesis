@@ -18,6 +18,7 @@ from nltk.stem import SnowballStemmer
 from utils import text_load
 from collections import Counter
 import os
+import math
 from utils.text_load import *
 
 
@@ -149,6 +150,19 @@ def get_datasets(args):
         _data_dir = '../data/Fed_EMNIST/'
         train_dataset = torch.load(os.path.join(_data_dir, 'fed_emnist_all_trainset.pt'))
         test_dataset = torch.load(os.path.join(_data_dir, 'fed_emnist_all_valset.pt'))
+    
+    # elif args.data == 'cifar100':
+    #     transform_train = transforms.Compose([
+    #         transforms.ToTensor(),
+    #         transforms.Normalize(mean=(0.4914, 0.4822, 0.4465), std=(0.2023, 0.1994, 0.2010)),
+    #     ])
+    #     transform_test = transforms.Compose([
+    #         transforms.ToTensor(),
+    #         transforms.Normalize(mean=(0.4914, 0.4822, 0.4465), std=(0.2023, 0.1994, 0.2010)),
+    #     ])
+    #     train_dataset = datasets.CIFAR100(data_dir, train=True, download=True, transform=transform_train)
+    #     test_dataset = datasets.CIFAR100(data_dir, train=False, download=True, transform=transform_test)
+    #     train_dataset.targets, test_dataset.targets = torch.LongTensor(train_dataset.targets), torch.LongTensor(test_dataset.targets)  
     
     elif args.data == 'cifar10':
         transform_train = transforms.Compose([
@@ -341,44 +355,63 @@ def test_reddit_normal(args, reddit_data_dict, model):
     model.train()
     return total_l, acc
 
-def get_mask_list(model, maskfraction=0.5):
+def get_mask_list(model, update, maskfraction):
     """Generate a gradient mask based on the given dataset"""
-    mask_grad_list = []
-    grad_res = []
-    l2_norm_list = []
-    sum_grad_layer = 0.0
-    for _, parms in model.named_parameters():
-        if parms.requires_grad:
-            grad_res.append(parms.grad.view(-1))
-            l2_norm_l = torch.norm(parms.grad.view(-1).clone().detach())/float(len(parms.grad.view(-1)))
-            l2_norm_list.append(l2_norm_l)
-            sum_grad_layer += l2_norm_l.item()
+    # mask_grad_list = []
+    # grad_res = []
+    # l2_norm_list = []
+    # sum_grad_layer = 0.0
+    # for _, parms in model.named_parameters():
+    #     if parms.requires_grad:
+    #         grad_res.append(parms.grad.view(-1))
+    #         l2_norm_l = torch.norm(parms.grad.view(-1).clone().detach())/float(len(parms.grad.view(-1)))
+    #         l2_norm_list.append(l2_norm_l)
+    #         sum_grad_layer += l2_norm_l.item()
 
-    grad_flat = torch.cat(grad_res)
+    # grad_flat = torch.cat(grad_res)
 
-    percentage_mask_list = []
-    k_layer = 0
-    for _, parms in model.named_parameters():
-        if parms.requires_grad:
-            gradients = parms.grad.abs().view(-1)
-            gradients_length = len(gradients)
-            if maskfraction == 1.0:
-                _, indices = torch.topk(-1*gradients, int(gradients_length*1.0))
-            else:
-                ratio_tmp = 1 - l2_norm_list[k_layer].item() / sum_grad_layer
-                _, indices = torch.topk(-1*gradients, int(gradients_length*maskfraction))
+    # percentage_mask_list = []
+    # k_layer = 0
+    # for _, parms in model.named_parameters():
+    #     if parms.requires_grad:
+    #         gradients = parms.grad.abs().view(-1)
+    #         gradients_length = len(gradients)
+    #         if maskfraction == 1.0:
+    #             _, indices = torch.topk(-1*gradients, int(gradients_length*1.0))
+    #         else:
+    #             ratio_tmp = 1 - l2_norm_list[k_layer].item() / sum_grad_layer
+    #             _, indices = torch.topk(-1*gradients, int(gradients_length*maskfraction))
 
-            mask_flat = torch.zeros(gradients_length)
-            mask_flat[indices.cpu()] = 1.0
-            mask_grad_list.append(mask_flat.reshape(parms.grad.size()))
+    #         mask_flat = torch.zeros(gradients_length)
+    #         mask_flat[indices.cpu()] = 1.0
+    #         mask_grad_list.append(mask_flat.reshape(parms.grad.size()))
 
-            percentage_mask1 = mask_flat.sum().item()/float(gradients_length)*100.0
+    #         percentage_mask1 = mask_flat.sum().item()/float(gradients_length)*100.0
 
-            percentage_mask_list.append(percentage_mask1)
+    #         percentage_mask_list.append(percentage_mask1)
 
-            k_layer += 1
+    #         k_layer += 1
 
-    return mask_grad_list
+    parameter_distribution = [0]
+    total = 0
+
+    for para in model.parameters():
+        size = para.view(-1).shape[0]
+        total += size
+        parameter_distribution.append(total)
+
+    benign_layer_list = []
+
+    for layer in range(len(parameter_distribution) - 1):
+        #loop over every layers nodes  by index
+        temp_layer = update[parameter_distribution[layer]:parameter_distribution[layer + 1]]
+        #Get the topk for every layer
+        topk_object = torch.topk(temp_layer, math.floor(len(temp_layer) * maskfraction))
+        temp_list = topk_object.indices.tolist()
+        benign_layer_list.append(temp_list)
+
+    return benign_layer_list
+    # return mask_grad_list
 
 def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1, attack_type='normal'):
     """
