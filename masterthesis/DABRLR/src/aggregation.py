@@ -2,7 +2,7 @@ import torch
 import models
 from torch.nn.utils import vector_to_parameters, parameters_to_vector
 from sklearn.metrics.pairwise import pairwise_distances
-#import hdbscan
+import hdbscan
 import numpy as np
 from copy import deepcopy
 from torch.nn import functional as F
@@ -37,7 +37,10 @@ class Aggregation():
             
         if self.args.noise > 0:
             aggregated_updates.add_(torch.normal(mean=0, std=self.args.noise*self.args.clip, size=(self.n_params,)).to(self.args.device))
-                
+
+        if self.args.clip > 0:
+            self.clip_updates(agent_updates_dict)     
+
         cur_global_params = parameters_to_vector(global_model.parameters())
         new_global_params =  (cur_global_params + lr_vector*aggregated_updates).float() 
         vector_to_parameters(new_global_params, global_model.parameters())
@@ -71,46 +74,16 @@ class Aggregation():
 
         #Add the gradients of the selected models with the least summed distance
         pairs = [(agent_updates_dict[i], dist_matrix[i]) for i in range(num_agents)]
+        print(pairs)
         pairs.sort(key=lambda pair: pair[1])
+        print(pairs)
         result = pairs[0][0]
+        print(max_malicious)
         for i in range(1, max_malicious):
             result += pairs[i][0]
         #take the average of all the models
         result /= float(max_malicious)
         return result
-
-    def flame_filter(self, inputs, cluster_sel=0):
-            cluster_base = hdbscan.HDBSCAN(
-                #metric='l2',
-                metric = 'precomputed',
-                min_cluster_size=int(self.args.num_agents/2 + 1),  # the smallest size grouping that you wish to consider a cluster
-                allow_single_cluster=True,  # False performs better in terms of Backdoor Attack
-                min_samples=1,  # how conservative you want you clustering to be
-            #    cluster_selection_epsilon=0,
-            )
-            cluster_lastLayer = hdbscan.HDBSCAN(
-                metric='l2',
-                min_cluster_size=2,
-                allow_single_cluster=True,
-                min_samples=1,
-            )
-            if cluster_sel == 0:
-                cluster = cluster_base
-            elif cluster_sel == 1:
-                cluster = cluster_lastLayer
-            cluster.fit(inputs)
-            label = cluster.labels_
-            print("label: ",label)
-            if (label == -1).all():
-                bengin_id = np.arange(len(inputs)).tolist()
-            else:
-                label_class, label_count = np.unique(label, return_counts=True)
-                if -1 in label_class:
-                    label_class, label_count = label_class[1:], label_count[1:]
-                majority = label_class[np.argmax(label_count)]
-                bengin_id = np.where(label == majority)[0].tolist()
-
-            return bengin_id
 
     def flame(self, agent_updates_dict):
         """ fed avg with flame """
@@ -119,8 +92,7 @@ class Aggregation():
         for _id, update in agent_updates_dict.items():
             weights[_id] = update.cpu().detach().numpy()  # np.array
         # grad_in = weights.tolist()  #list
-        distance_matrix = pairwise_distances(grad_in, metric='cosine')
-        benign_id = flame_filter(distance_matrix, cluster_sel=cluster_sel)
+        benign_id = self.flame_filter(weights, cluster_sel=0)
         print('!!!FLAME: remained ids are:')
         print(benign_id)
         accepted_models_dict = {}
@@ -132,6 +104,40 @@ class Aggregation():
             sm_updates += n_agent_data * update
             total_data += n_agent_data
         return sm_updates / total_data
+
+    def flame_filter(self, grad_in, cluster_sel=0):
+        distance_matrix = pairwise_distances(grad_in, metric='cosine')
+        cluster_base = hdbscan.HDBSCAN(
+            #metric='l2',
+            metric = 'precomputed',
+            min_cluster_size=int(self.args.num_agents/2 + 1),  # the smallest size grouping that you wish to consider a cluster
+            allow_single_cluster=True,  # False performs better in terms of Backdoor Attack
+            min_samples=1,  # how conservative you want you clustering to be
+        #    cluster_selection_epsilon=0,
+        )
+        cluster_lastLayer = hdbscan.HDBSCAN(
+            metric='l2',
+            min_cluster_size=2,
+            allow_single_cluster=True,
+            min_samples=1,
+        )
+        if cluster_sel == 0:
+            cluster = cluster_base
+        elif cluster_sel == 1:
+            cluster = cluster_lastLayer
+        cluster.fit(distance_matrix)
+        label = cluster.labels_
+        print("label: ",label)
+        if (label == -1).all():
+            bengin_id = np.arange(len(distance_matrix)).tolist()
+        else:
+            label_class, label_count = np.unique(label, return_counts=True)
+            if -1 in label_class:
+                label_class, label_count = label_class[1:], label_count[1:]
+            majority = label_class[np.argmax(label_count)]
+            bengin_id = np.where(label == majority)[0].tolist()
+
+        return bengin_id
 
     def compute_robustLR(self, agent_updates_dict):
         agent_updates_sign = [torch.sign(update) for update in agent_updates_dict.values()]  
