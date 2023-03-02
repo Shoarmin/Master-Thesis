@@ -151,18 +151,18 @@ def get_datasets(args):
         train_dataset = torch.load(os.path.join(_data_dir, 'fed_emnist_all_trainset.pt'))
         test_dataset = torch.load(os.path.join(_data_dir, 'fed_emnist_all_valset.pt'))
     
-    # elif args.data == 'cifar100':
-    #     transform_train = transforms.Compose([
-    #         transforms.ToTensor(),
-    #         transforms.Normalize(mean=(0.4914, 0.4822, 0.4465), std=(0.2023, 0.1994, 0.2010)),
-    #     ])
-    #     transform_test = transforms.Compose([
-    #         transforms.ToTensor(),
-    #         transforms.Normalize(mean=(0.4914, 0.4822, 0.4465), std=(0.2023, 0.1994, 0.2010)),
-    #     ])
-    #     train_dataset = datasets.CIFAR100(data_dir, train=True, download=True, transform=transform_train)
-    #     test_dataset = datasets.CIFAR100(data_dir, train=False, download=True, transform=transform_test)
-    #     train_dataset.targets, test_dataset.targets = torch.LongTensor(train_dataset.targets), torch.LongTensor(test_dataset.targets)  
+    elif args.data == 'cifar100':
+        transform_train = transforms.Compose([
+            transforms.ToTensor(),
+            # transforms.Normalize(mean=(0.4914, 0.4822, 0.4465), std=(0.2023, 0.1994, 0.2010)),
+        ])
+        transform_test = transforms.Compose([
+            transforms.ToTensor(),
+            # transforms.Normalize(mean=(0.4914, 0.4822, 0.4465), std=(0.2023, 0.1994, 0.2010)),
+        ])
+        train_dataset = datasets.CIFAR100(data_dir, train=True, download=True, transform=transform_train)
+        test_dataset = datasets.CIFAR100(data_dir, train=False, download=True, transform=transform_test)
+        train_dataset.targets, test_dataset.targets = torch.LongTensor(train_dataset.targets), torch.LongTensor(test_dataset.targets)  
     
     elif args.data == 'cifar10':
         transform_train = transforms.Compose([
@@ -420,7 +420,7 @@ def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1, at
     x = np.array(x.squeeze())
     
     # if cifar is selected, we're doing a distributed backdoor attack (i.e., portions of trojan pattern is split between agents, only works for plus)
-    if dataset == 'cifar10':
+    if dataset == 'cifar10' or 'cifar100':
         start_idx = 5
         size = 6
         if pattern_type == 'plus':

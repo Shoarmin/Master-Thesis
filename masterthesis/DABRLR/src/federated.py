@@ -22,6 +22,9 @@ torch.backends.cudnn.benchmark = True
 import warnings
 import os
 
+#DATALOADER get_datasets:
+    #Load train and val data
+
 if __name__ == '__main__':
     args = args_parser()
     args.server_lr = args.server_lr if args.aggr == 'sign' else 1.0
@@ -36,7 +39,7 @@ if __name__ == '__main__':
     writer = SummaryWriter(f'logs/{file_name}')
     cum_poison_acc_mean = 0
 
-    if args.data in ['cifar10', 'tinyimage', 'fedemnist', 'fmnist']:
+    if args.data in ['cifar10', 'cifar100', 'tinyimage', 'fedemnist', 'fmnist']:
         # load dataset and user groups (i.e., user to data mapping)
         train_dataset, val_dataset = utilities.get_datasets(args)
         val_loader = DataLoader(val_dataset, batch_size=args.bs, shuffle=False, num_workers=args.num_workers, pin_memory=False)
@@ -47,14 +50,14 @@ if __name__ == '__main__':
             user_groups = utilities.distribute_data(train_dataset, args)
         print("Data Distributed")
 
-        # def print_distribution(user_groups, num_classes, train_dataset):
-        #     print('======================================')
-        #     for i in range(len(user_groups)):
-        #         print('client {id}, data amount is {amount}'.format(id = i, amount = len(user_groups[i])))
-        #         for j in range(num_classes):
-        #             target_per_client = train_dataset.targets[user_groups[i]]
-        #             print('index:{} number:{}'.format(j, torch.numel(target_per_client[target_per_client == j])))
-        #     print('======================================')
+        def print_distribution(user_groups, num_classes, train_dataset):
+            print('======================================')
+            for i in range(len(user_groups)):
+                print('client {id}, data amount is {amount}'.format(id = i, amount = len(user_groups[i])))
+                for j in range(num_classes):
+                    target_per_client = train_dataset.targets[user_groups[i]]
+                    print('index:{} number:{}'.format(j, torch.numel(target_per_client[target_per_client == j])))
+            print('======================================')
             
         # print_distribution(user_groups, len(train_dataset.targets.unique()), train_dataset)
         # exit()

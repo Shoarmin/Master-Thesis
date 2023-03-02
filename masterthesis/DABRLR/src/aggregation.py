@@ -2,7 +2,7 @@ import torch
 import models
 from torch.nn.utils import vector_to_parameters, parameters_to_vector
 from sklearn.metrics.pairwise import pairwise_distances
-import hdbscan
+# import hdbscan
 import numpy as np
 from copy import deepcopy
 from torch.nn import functional as F

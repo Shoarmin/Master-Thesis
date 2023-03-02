@@ -10,6 +10,8 @@ def get_model(data):
         return resnet18()
     elif data == 'cifar10':
         return CNN_CIFAR()
+    elif data ==  'cifar100':
+        return CNN_CIFAR100()
     elif data == 'reddit' or data == 'sentiment':
         local_model = RNNModel(name='Local', created_time=None, rnn_type='LSTM', ntoken=50000, ninp=200, nhid=200, nlayers=2, dropout=0.2, tie_weights=True)
         return local_model
@@ -49,6 +51,33 @@ class CNN_CIFAR(nn.Module):
         self.fc2 = nn.Linear(128, 256)
         self.drop3 = nn.Dropout2d(p=0.5)
         self.fc3 = nn.Linear(256, 10)
+
+    def forward(self, x):
+        x = self.pool(F.relu(self.conv1(x)))
+        x = self.pool(F.relu(self.conv2(x)))
+        x = self.pool(F.relu(self.conv3(x)))
+        x = x.view(-1, 64 * 4 * 4)
+        x = self.drop1(x)
+        x = F.relu(self.fc1(x))
+        x = self.drop2(x)
+        x = F.relu(self.fc2(x))
+        x = self.drop3(x)
+        x = self.fc3(x)
+        return x
+    
+class CNN_CIFAR100(nn.Module):
+    def __init__(self):
+        super(CNN_CIFAR100, self).__init__()
+        self.conv1 = nn.Conv2d(3,   64,  3)
+        self.conv2 = nn.Conv2d(64,  128, 3)
+        self.conv3 = nn.Conv2d(128, 256, 3)
+        self.pool = nn.MaxPool2d(2, 2)
+        self.drop1 = nn.Dropout2d(p=0.5)
+        self.fc1 = nn.Linear(64 * 4 * 4, 128)
+        self.drop2 = nn.Dropout2d(p=0.5)
+        self.fc2 = nn.Linear(128, 256)
+        self.drop3 = nn.Dropout2d(p=0.5)
+        self.fc3 = nn.Linear(256, 100)
 
     def forward(self, x):
         x = self.pool(F.relu(self.conv1(x)))
