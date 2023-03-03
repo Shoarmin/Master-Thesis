@@ -357,40 +357,45 @@ def test_reddit_normal(args, reddit_data_dict, model):
 
 def get_mask_list(model, update, maskfraction):
     """Generate a gradient mask based on the given dataset"""
-    # mask_grad_list = []
-    # grad_res = []
-    # l2_norm_list = []
-    # sum_grad_layer = 0.0
-    # for _, parms in model.named_parameters():
-    #     if parms.requires_grad:
-    #         grad_res.append(parms.grad.view(-1))
-    #         l2_norm_l = torch.norm(parms.grad.view(-1).clone().detach())/float(len(parms.grad.view(-1)))
-    #         l2_norm_list.append(l2_norm_l)
-    #         sum_grad_layer += l2_norm_l.item()
 
-    # grad_flat = torch.cat(grad_res)
-
-    # percentage_mask_list = []
+    # grad_list = []
+    # grad_abs_sum_list = []
     # k_layer = 0
     # for _, parms in model.named_parameters():
     #     if parms.requires_grad:
-    #         gradients = parms.grad.abs().view(-1)
-    #         gradients_length = len(gradients)
-    #         if maskfraction == 1.0:
-    #             _, indices = torch.topk(-1*gradients, int(gradients_length*1.0))
-    #         else:
-    #             ratio_tmp = 1 - l2_norm_list[k_layer].item() / sum_grad_layer
-    #             _, indices = torch.topk(-1*gradients, int(gradients_length*maskfraction))
+    #         grad_list.append(parms.grad.abs().view(-1))
 
-    #         mask_flat = torch.zeros(gradients_length)
-    #         mask_flat[indices.cpu()] = 1.0
+    #         grad_abs_sum_list.append(parms.grad.abs().view(-1).sum().item())
+
+    #         k_layer += 1
+
+    # grad_list = torch.cat(grad_list)
+    # _, indices = torch.topk(-1*grad_list, int(len(grad_list)*maskfraction))
+    # mask_flat_all_layer = torch.zeros(len(grad_list))
+    # mask_flat_all_layer[indices] = 1.0
+
+    # count = 0
+    # percentage_mask_list = []
+    # k_layer = 0
+    # grad_abs_percentage_list = []
+    # for _, parms in model.named_parameters():
+    #     if parms.requires_grad:
+    #         gradients_length = len(parms.grad.abs().view(-1))
+
+    #         mask_flat = mask_flat_all_layer[count:count + gradients_length ]
     #         mask_grad_list.append(mask_flat.reshape(parms.grad.size()))
+
+    #         count += gradients_length
 
     #         percentage_mask1 = mask_flat.sum().item()/float(gradients_length)*100.0
 
     #         percentage_mask_list.append(percentage_mask1)
 
+    #         grad_abs_percentage_list.append(grad_abs_sum_list[k_layer]/np.sum(grad_abs_sum_list))
+
     #         k_layer += 1
+    # model.zero_grad()
+    # return mask_grad_list
 
     parameter_distribution = [0]
     total = 0
@@ -420,7 +425,7 @@ def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1, at
     x = np.array(x.squeeze())
     
     # if cifar is selected, we're doing a distributed backdoor attack (i.e., portions of trojan pattern is split between agents, only works for plus)
-    if dataset == 'cifar10' or 'cifar100':
+    if dataset in ['cifar10' or 'cifar100']:
         start_idx = 5
         size = 6
         if pattern_type == 'plus':

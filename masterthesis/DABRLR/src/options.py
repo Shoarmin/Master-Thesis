@@ -36,6 +36,9 @@ def args_parser():
     parser.add_argument('--client_lr', type=float, default=0.1,
                         help='clients learning rate')
     
+    parser.add_argument('--poison_lr', type=float, default=0.1,
+                        help='clients learning rate')
+    
     parser.add_argument('--client_moment', type=float, default=0.9,
                         help='clients momentum')
     
@@ -102,7 +105,7 @@ def args_parser():
     parser.add_argument('--load_model', type=boolean_string, default=False,
                 help="Decide if you want to load a model")
     
-    parser.add_argument('--maskfraction', type=float, default=0.01,
+    parser.add_argument('--maskfraction', type=float, default=0.99,
                     help="Add the fraction that you want to mask for neurotoxin attack")
     
     parser.add_argument('--attack_rounds', type=int, default=100,
