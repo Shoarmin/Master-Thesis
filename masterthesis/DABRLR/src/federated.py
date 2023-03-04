@@ -22,9 +22,6 @@ torch.backends.cudnn.benchmark = True
 import warnings
 import os
 
-#DATALOADER get_datasets:
-    #Load train and val data
-
 if __name__ == '__main__':
     args = args_parser()
     args.server_lr = args.server_lr if args.aggr == 'sign' else 1.0
@@ -106,9 +103,9 @@ if __name__ == '__main__':
     for _id in range(0, args.num_agents):
         if args.data != 'reddit': 
             if args.data == 'fedemnist': 
-                agent = Agent(_id, args)
+                agent = Agent(_id, args) #CGECK IF THIS LINE IS REDUNDANT OR NOT
             else:
-                agent = Agent(_id, args, train_dataset, user_groups[_id])
+                agent = Agent(_id, args, train_dataset, user_groups[_id], writer)
             agents.append(agent) 
             agent_data_sizes[_id] = agent.n_data
         else:

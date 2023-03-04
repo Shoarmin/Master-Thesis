@@ -154,11 +154,11 @@ def get_datasets(args):
     elif args.data == 'cifar100':
         transform_train = transforms.Compose([
             transforms.ToTensor(),
-            # transforms.Normalize(mean=(0.4914, 0.4822, 0.4465), std=(0.2023, 0.1994, 0.2010)),
+            transforms.Normalize(mean=(0.4914, 0.4822, 0.4465), std=(0.2023, 0.1994, 0.2010)),
         ])
         transform_test = transforms.Compose([
             transforms.ToTensor(),
-            # transforms.Normalize(mean=(0.4914, 0.4822, 0.4465), std=(0.2023, 0.1994, 0.2010)),
+            transforms.Normalize(mean=(0.4914, 0.4822, 0.4465), std=(0.2023, 0.1994, 0.2010)),
         ])
         train_dataset = datasets.CIFAR100(data_dir, train=True, download=True, transform=transform_train)
         test_dataset = datasets.CIFAR100(data_dir, train=False, download=True, transform=transform_test)
@@ -425,7 +425,7 @@ def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1, at
     x = np.array(x.squeeze())
     
     # if cifar is selected, we're doing a distributed backdoor attack (i.e., portions of trojan pattern is split between agents, only works for plus)
-    if dataset in ['cifar10' or 'cifar100']:
+    if dataset in ['cifar10', 'cifar100']:
         start_idx = 5
         size = 6
         if pattern_type == 'plus':

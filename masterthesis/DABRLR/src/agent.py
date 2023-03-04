@@ -1,5 +1,4 @@
 import torch
-import models
 import utilities
 import copy
 from torch.nn.utils import parameters_to_vector, vector_to_parameters
@@ -42,6 +41,7 @@ class Agent():
         if self.id < args.num_corrupt:
             print("poison loader set")
             self.poison_loader = DataLoader(self.poison_dataset, batch_size=self.args.bs, shuffle=True, num_workers=args.num_workers, pin_memory=False)
+
         # size of local dataset
         self.n_data = len(self.train_dataset)
 
@@ -58,23 +58,22 @@ class Agent():
             
         #choose neurotoxin if the attack mode is neuro and the current round is an attack round
         elif self.args.attack == 'neuro' and self.is_attack_round(rnd):
-            print("BENIGN")  
             return self.neurotrain(global_model, criterion)
         
     def local_train_normal_attack(self, global_model, criterion, attack):
         """ Do a local training over the received global model, return the update """
         initial_global_model_params = parameters_to_vector(global_model.parameters()).detach()
         global_model.train()       
+        optimizer = torch.optim.SGD(global_model.parameters(), lr=self.args.client_lr, momentum=self.args.client_moment)
 
         #get the poisoned dataset for the attacker
         if (self.id < self.args.num_corrupt and attack and self.args.attack == 'normal') or (self.args.attack == 'dba' and self.id % self.args.num_corrupt == 0 and attack and self.id < self.args.num_corrupt): 
             dataloader = self.poison_loader
-            optimizer = torch.optim.SGD(global_model.parameters(), lr=self.args.poison_lr, momentum=self.args.client_moment)
         else:
         #use the normal set for benign agents or malicious agent in non-attack round
            # print(f'train normal {self.id}')
             dataloader = self.train_loader
-            optimizer = torch.optim.SGD(global_model.parameters(), lr=self.args.client_lr, momentum=self.args.client_moment)
+            print("BENIGN TRAIN")
         
         for _ in range(self.args.local_ep):
             for _, (inputs, labels) in enumerate(dataloader):
@@ -111,7 +110,7 @@ class Agent():
         initial_vector = parameters_to_vector(global_model.parameters()).detach()
         # train poisoned agent
         if self.id < self.args.num_corrupt:
-            optimizer = torch.optim.SGD(global_model.parameters(), lr=self.args.poison_lr, momentum=self.args.client_moment)
+            optimizer = torch.optim.SGD(global_model.parameters(), lr=self.args.client_lr, momentum=self.args.client_moment)
             scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer,milestones=[0.2 * self.args.poison_epoch, 0.8 * self.args.poison_epoch], gamma=0.1)
             global_model.train()
             for epoch in range(self.args.poison_epoch):
@@ -155,7 +154,7 @@ class Agent():
         #Train on benign data and get the gradient - CHECK
         #get mask list based on that gradient - CHECK
         #Train normally on poisoned dataset - CHECK
-        #Apply the gradient on the constrainted mask set - 
+        #Apply the gradient on the constrainted mask set - CHECK
 
         # def apply_grad_mask(model, mask_grad_list):
         #     mask_grad_list_copy = iter(mask_grad_list)
@@ -170,7 +169,6 @@ class Agent():
                 if len(temp_grad) > threshold:
                     temp_grad[[topk_list[count]]] = 0.0
                 count += 1
-                print(count)
             return
 
         initial_global_model_params = parameters_to_vector(global_model.parameters()).detach()
@@ -178,8 +176,7 @@ class Agent():
         benign_model =  copy.deepcopy(global_model)
         update = self.local_train_normal_attack(benign_model, criterion, False)
         grad_mask_list = utilities.get_mask_list(benign_model, update, self.args.maskfraction)
-        # print(grad_mask_list)
-        optimizer = torch.optim.SGD(global_model.parameters(), lr=self.args.poison_lr, momentum=self.args.client_moment)
+        optimizer = torch.optim.SGD(global_model.parameters(), lr=self.args.client_lr, momentum=self.args.client_moment)
 
         for _ in range(self.args.local_ep):
             for _, (inputs, labels) in enumerate(self.poison_loader):
