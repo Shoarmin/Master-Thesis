@@ -355,68 +355,77 @@ def test_reddit_normal(args, reddit_data_dict, model):
     model.train()
     return total_l, acc
 
-def get_mask_list(model, update, maskfraction):
+def get_mask_list(model, benign_loader, criterion,  maskfraction, args):
     """Generate a gradient mask based on the given dataset"""
+    model.train()
+    model.zero_grad()
 
-    # grad_list = []
-    # grad_abs_sum_list = []
-    # k_layer = 0
-    # for _, parms in model.named_parameters():
-    #     if parms.requires_grad:
-    #         grad_list.append(parms.grad.abs().view(-1))
+    for inputs, labels in benign_loader:
+        inputs, labels = inputs.to(args.device), labels.to(args.device)
 
-    #         grad_abs_sum_list.append(parms.grad.abs().view(-1).sum().item())
+        output = model(inputs)
 
-    #         k_layer += 1
+        loss = criterion(output, labels)
+        loss.backward(retain_graph=True)
 
-    # grad_list = torch.cat(grad_list)
-    # _, indices = torch.topk(-1*grad_list, int(len(grad_list)*maskfraction))
-    # mask_flat_all_layer = torch.zeros(len(grad_list))
-    # mask_flat_all_layer[indices] = 1.0
+    mask_grad_list = []
+    grad_list = []
+    grad_abs_sum_list = []
+    k_layer = 0
+    for _, parms in model.named_parameters():
+        if parms.requires_grad:
+            grad_list.append(parms.grad.abs().view(-1))
 
-    # count = 0
-    # percentage_mask_list = []
-    # k_layer = 0
-    # grad_abs_percentage_list = []
-    # for _, parms in model.named_parameters():
-    #     if parms.requires_grad:
-    #         gradients_length = len(parms.grad.abs().view(-1))
+            grad_abs_sum_list.append(parms.grad.abs().view(-1).sum().item())
 
-    #         mask_flat = mask_flat_all_layer[count:count + gradients_length ]
-    #         mask_grad_list.append(mask_flat.reshape(parms.grad.size()))
+            k_layer += 1
 
-    #         count += gradients_length
+    grad_list = torch.cat(grad_list).to(args.device)
+    _, indices = torch.topk(-1*grad_list, int(len(grad_list)*maskfraction))
+    mask_flat_all_layer = torch.zeros(len(grad_list)).to(args.device)
+    mask_flat_all_layer[indices] = 1.0
 
-    #         percentage_mask1 = mask_flat.sum().item()/float(gradients_length)*100.0
+    count = 0
+    percentage_mask_list = []
+    k_layer = 0
+    grad_abs_percentage_list = []
+    for _, parms in model.named_parameters():
+        if parms.requires_grad:
+            gradients_length = len(parms.grad.abs().view(-1))
 
-    #         percentage_mask_list.append(percentage_mask1)
+            mask_flat = mask_flat_all_layer[count:count + gradients_length]
+            mask_grad_list.append(mask_flat.reshape(parms.grad.size()))
 
-    #         grad_abs_percentage_list.append(grad_abs_sum_list[k_layer]/np.sum(grad_abs_sum_list))
+            count += gradients_length
 
-    #         k_layer += 1
-    # model.zero_grad()
-    # return mask_grad_list
+            percentage_mask1 = mask_flat.sum().item()/float(gradients_length)*100.0
 
-    parameter_distribution = [0]
-    total = 0
+            percentage_mask_list.append(percentage_mask1)
 
-    for para in model.parameters():
-        size = para.view(-1).shape[0]
-        total += size
-        parameter_distribution.append(total)
+            grad_abs_percentage_list.append(grad_abs_sum_list[k_layer]/np.sum(grad_abs_sum_list))
 
-    benign_layer_list = []
+            k_layer += 1
 
-    for layer in range(len(parameter_distribution) - 1):
-        #loop over every layers nodes  by index
-        temp_layer = update[parameter_distribution[layer]:parameter_distribution[layer + 1]]
-        #Get the topk for every layer
-        topk_object = torch.topk(temp_layer, math.floor(len(temp_layer) * maskfraction))
-        temp_list = topk_object.indices.tolist()
-        benign_layer_list.append(temp_list)
+    # parameter_distribution = [0]
+    # total = 0
 
-    return benign_layer_list
-    # return mask_grad_list
+    # for para in model.parameters():
+    #     size = para.view(-1).shape[0]
+    #     total += size
+    #     parameter_distribution.append(total)
+
+    # benign_layer_list = []
+
+    # for layer in range(len(parameter_distribution) - 1):
+    #     #loop over every layers nodes  by index
+    #     temp_layer = update[parameter_distribution[layer]:parameter_distribution[layer + 1]]
+    #     #Get the topk for every layer
+    #     topk_object = torch.topk(temp_layer, math.floor(len(temp_layer) * maskfraction))
+    #     temp_list = topk_object.indices.tolist()
+    #     benign_layer_list.append(temp_list)
+
+    # return benign_layer_list
+    return mask_grad_list
 
 def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1, attack_type='normal'):
     """

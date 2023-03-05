@@ -156,27 +156,27 @@ class Agent():
         #Train normally on poisoned dataset - CHECK
         #Apply the gradient on the constrainted mask set - CHECK
 
-        # def apply_grad_mask(model, mask_grad_list):
-        #     mask_grad_list_copy = iter(mask_grad_list)
-        #     for name, parms in model.named_parameters():
-        #         if parms.requires_grad:
-        #             parms.grad = parms.grad.to(device=self.args.device, non_blocking=True) * next(mask_grad_list_copy).to(device=self.args.device, non_blocking=True)
+        def apply_grad_mask(model, mask_grad_list):
+            mask_grad_list_copy = iter(mask_grad_list)
+            for name, parms in model.named_parameters():
+                if parms.requires_grad:
+                    parms.grad = parms.grad.to(device=self.args.device, non_blocking=True) * next(mask_grad_list_copy).to(device=self.args.device, non_blocking=True)
 
-        def apply_grad_mask(model, topk_list, threshold = 0):
-            count = 0
-            for para in model.parameters():
-                temp_grad = para.grad.view(-1)
-                if len(temp_grad) > threshold:
-                    temp_grad[[topk_list[count]]] = 0.0
-                count += 1
-            return
+        # def apply_grad_mask(model, topk_list, threshold = 0):
+        #     count = 0
+        #     for para in model.parameters():
+        #         temp_grad = para.grad.view(-1)
+        #         if len(temp_grad) > threshold:
+        #             temp_grad[[topk_list[count]]] = 0.0
+        #         count += 1
+        #     return
 
         initial_global_model_params = parameters_to_vector(global_model.parameters()).detach()
         global_model.train()
-        benign_model =  copy.deepcopy(global_model)
-        update = self.local_train_normal_attack(benign_model, criterion, False)
-        grad_mask_list = utilities.get_mask_list(benign_model, update, self.args.maskfraction)
-        optimizer = torch.optim.SGD(global_model.parameters(), lr=self.args.client_lr, momentum=self.args.client_moment)
+        # benign_model =  copy.deepcopy(global_model)
+        # update = self.local_train_normal_attack(benign_model, criterion, False)
+        grad_mask_list = utilities.get_mask_list(global_model, self.train_loader, criterion, self.args.maskfraction, self.args)
+        optimizer = torch.optim.SGD(global_model.parameters(), lr=self.args.poison_lr, momentum=self.args.client_moment)
 
         for _ in range(self.args.local_ep):
             for _, (inputs, labels) in enumerate(self.poison_loader):

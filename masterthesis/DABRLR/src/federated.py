@@ -105,7 +105,7 @@ if __name__ == '__main__':
             if args.data == 'fedemnist': 
                 agent = Agent(_id, args) #CGECK IF THIS LINE IS REDUNDANT OR NOT
             else:
-                agent = Agent(_id, args, train_dataset, user_groups[_id], writer)
+                agent = Agent(_id, args, train_dataset, user_groups[_id])
             agents.append(agent) 
             agent_data_sizes[_id] = agent.n_data
         else:
