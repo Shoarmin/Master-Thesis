@@ -57,7 +57,7 @@ def args_parser():
     parser.add_argument('--attack', type=str, default='normal', 
                         help="What type of backdoor attack to do")
     
-    parser.add_argument('--pattern_type', type=str, default='plus', 
+    parser.add_argument('--pattern', type=str, default='plus', 
                         help="shape of bd pattern")
     
     parser.add_argument('--robustLR_threshold', type=int, default=0, 
