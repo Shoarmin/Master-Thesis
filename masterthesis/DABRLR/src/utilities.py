@@ -274,7 +274,7 @@ def poison_dataset(dataset, args, data_idxs=None, poison_all=False, agent_idx=-1
         else:
             clean_img = dataset.data[idx]
 
-        bd_img = add_pattern_bd(clean_img, args.data, pattern_type=args.pattern_type, agent_idx=agent_idx, attack_type=args.attack)
+        bd_img = add_pattern_bd(clean_img, args.data, pattern_type=args.pattern, agent_idx=agent_idx, attack_type=args.attack)
 
         if args.data == 'fedemnist':
             dataset.inputs[idx] = torch.tensor(bd_img)
@@ -412,26 +412,49 @@ def get_mask_list(model, benign_loader, criterion,  maskfraction, args):
 
             k_layer += 1
 
-    # parameter_distribution = [0]
-    # total = 0
-
-    # for para in model.parameters():
-    #     size = para.view(-1).shape[0]
-    #     total += size
-    #     parameter_distribution.append(total)
-
-    # benign_layer_list = []
-
-    # for layer in range(len(parameter_distribution) - 1):
-    #     #loop over every layers nodes  by index
-    #     temp_layer = update[parameter_distribution[layer]:parameter_distribution[layer + 1]]
-    #     #Get the topk for every layer
-    #     topk_object = torch.topk(temp_layer, math.floor(len(temp_layer) * maskfraction))
-    #     temp_list = topk_object.indices.tolist()
-    #     benign_layer_list.append(temp_list)
-
-    # return benign_layer_list
     return mask_grad_list
+
+# def get_nlp_mask(model, benign_loader, criterion,  maskfraction, args):
+#     model.train()
+#     model.zero_grad()
+#     hidden = model.init_hidden(args.params['batch_size'])
+#     for participant_id in range(len(dataset_clearn)):
+#         train_data = dataset_clearn[participant_id]
+#         if helper.params['task'] == 'word_predict':
+#             data_iterator = range(0, train_data.size(0) - 1, helper.params['sequence_length'])
+#             ntokens = 50000
+#             for batch in data_iterator:
+#                 model.train()
+#                 data, targets = helper.get_batch(train_data, batch)
+#                 hidden = helper.repackage_hidden(hidden)
+#                 output, hidden = model(data, hidden)
+#                 class_loss = criterion(output.view(-1, ntokens), targets)
+#                 class_loss.backward(retain_graph=True)
+#     mask_grad_list = []
+#     if helper.params['aggregate_all_layer'] == 1:
+#         grad_list = []
+#         for _, parms in model.named_parameters():
+#             if parms.requires_grad:
+#                 grad_list.append(parms.grad.abs().view(-1))
+#         grad_list = torch.cat(grad_list).cuda()
+#         _, indices = torch.topk(-1*grad_list, int(len(grad_list)*ratio))
+#         indices = list(indices.cpu().numpy())
+#         count = 0
+#         for _, parms in model.named_parameters():
+#             if parms.requires_grad:
+#                 count_list = list(range(count, count + len(parms.grad.abs().view(-1))))
+#                 index_list = list(set(count_list).intersection(set(indices)))
+#                 mask_flat = np.zeros( count + len(parms.grad.abs().view(-1))  )
+
+#                 mask_flat[index_list] = 1.0
+#                 mask_flat = mask_flat[count:count + len(parms.grad.abs().view(-1))]
+#                 mask = list(mask_flat.reshape(parms.grad.abs().size()))
+
+#                 mask = torch.from_numpy(np.array(mask, dtype='float32')).cuda()
+#                 mask_grad_list.append(mask)
+#                 count += len(parms.grad.abs().view(-1))
+#     model.zero_grad()
+#     return mask_grad_list
 
 def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1, attack_type='normal'):
     """
@@ -648,7 +671,7 @@ def print_exp_details(args):
     print(f'    Aggregation Function: {args.aggr}')
     print(f'    Number of agents: {args.num_agents}')
     print(f'    Fraction of agents: {args.agent_frac}')
-    print(f'    Pattern_type: {args.pattern_type}')
+    print(f'    Pattern_type: {args.pattern}')
     print(f'    Base class: {args.base_class}')
     print(f'    Target class: {args.target_class}')
     print(f'    Batch size: {args.bs}')

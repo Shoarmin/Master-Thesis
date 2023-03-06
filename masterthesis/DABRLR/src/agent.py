@@ -57,9 +57,9 @@ class Agent():
             return self.local_train_normal_attack(global_model, criterion, self.is_attack_round(rnd))
             
         #choose neurotoxin if the attack mode is neuro and the current round is an attack round
-        elif self.args.attack == 'neuro' and self.is_attack_round(rnd):
+        elif self.args.attack == 'neuro' and self.is_attack_round(rnd) and self.args.data != 'reddit':
             return self.neurotrain(global_model, criterion)
-        
+            
     def local_train_normal_attack(self, global_model, criterion, attack):
         """ Do a local training over the received global model, return the update """
         initial_global_model_params = parameters_to_vector(global_model.parameters()).detach()
@@ -101,6 +101,7 @@ class Agent():
             return update
         
     def reddit_local_train(self, global_model, criterion, data_dict, sampling):
+        
         #train on the reddit data
         train_data = data_dict['train_data'][sampling[self.id]].to(self.args.device)
         ntokens = data_dict['n_tokens']
@@ -147,7 +148,38 @@ class Agent():
         with torch.no_grad():
             update = parameters_to_vector(global_model.parameters()).double() - initial_vector
             return update
-            
+    
+    def reddit_neuro_train(self, global_model, criterion, data_dict, sampling):
+        train_data = data_dict['train_data'][sampling[self.id]].to(self.args.device)
+        ntokens = data_dict['n_tokens']
+        hidden = global_model.init_hidden(self.args.bs)
+
+        poisoned_data = data_dict['poisoned_traindata']
+        initial_vector = parameters_to_vector(global_model.parameters()).detach()
+        # train poisoned agent
+        if self.id < self.args.num_corrupt:
+            optimizer = torch.optim.SGD(global_model.parameters(), lr=self.args.client_lr, momentum=self.args.client_moment)
+            scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer,milestones=[0.2 * self.args.poison_epoch, 0.8 * self.args.poison_epoch], gamma=0.1)
+            global_model.train()
+            for epoch in range(self.args.poison_epoch):
+                data_iterator = range(0, poisoned_data.size(0) - 1, self.args.bptt)
+                for batch_id, batch in enumerate(data_iterator):
+                    data, targets = get_batch(poisoned_data, batch)
+                    data, targets = data.to(self.args.device), targets.to(self.args.device)
+                    optimizer.zero_grad()
+                    hidden = repackage_hidden(hidden)
+                    output, hidden = global_model(data, hidden)
+                    class_loss = criterion(output[-1].view(-1, ntokens), targets[-self.args.bs:])
+
+                    class_loss.backward()
+                    torch.nn.utils.clip_grad_norm_(global_model.parameters(), 0.25)
+                    optimizer.step()
+                    if self.args.step_lr:
+                        scheduler.step()
+        with torch.no_grad():
+            update = parameters_to_vector(global_model.parameters()).double() - initial_vector
+            return update
+        
     def neurotrain(self, global_model, criterion):
         print("NEURO")
         #train using the neurotoxin attack methods 

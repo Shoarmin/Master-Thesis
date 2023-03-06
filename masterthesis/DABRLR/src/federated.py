@@ -31,7 +31,7 @@ if __name__ == '__main__':
     # # data recorders
     file_name = f"""time:{ctime()}-clip_val:{args.clip}-noise_std:{args.noise}"""\
             + f"""-aggr:{args.aggr}-s_lr:{args.server_lr}-num_cor:{args.num_corrupt}"""\
-            + f"""-num_corrupt:{args.num_corrupt}-pttrn:{args.pattern_type}-data:{args.data}"""
+            + f"""-num_corrupt:{args.num_corrupt}-pttrn:{args.pattern}-data:{args.data}"""
     file_name = file_name.replace(":", '=')
     writer = SummaryWriter(f'logs/{file_name}')
     cum_poison_acc_mean = 0
@@ -137,6 +137,8 @@ if __name__ == '__main__':
             else:
                 # for reddit sample a number between 0 and 80000 (len dataset) and pass that to the agent to train on
                 sampling = random.sample(range(len(text_data['train_data'])), args.num_agents)
+                if args.attack == 'neuro' and agents[agent_id].is_attack_round(rnd):
+                    update = agents[agent_id].reddit_neuro_train(global_model, criterion, text_data, sampling)
                 update = agents[agent_id].reddit_local_train(global_model, criterion, text_data, sampling)
             agent_updates_dict[agent_id] = update
             # make sure every agent gets same copy of the global model in a round (i.e., they don't affect each other's training)
