@@ -147,7 +147,10 @@ def get_datasets(args):
         test_dataset = datasets.FashionMNIST(data_dir, train=False, download=True, transform=transform)
     
     elif args.data == 'fedemnist':
-        _data_dir = '../data/Fed_EMNIST/'
+        if torch.cuda.is_available():
+            _data_dir = '../data/Fed_EMNIST/'
+        else:
+            _data_dir = '/tudelft.net/staff-bulk/ewi/insy/CYS/shoarmin/Fed_EMNIST/'
         train_dataset = torch.load(os.path.join(_data_dir, 'fed_emnist_all_trainset.pt'))
         test_dataset = torch.load(os.path.join(_data_dir, 'fed_emnist_all_valset.pt'))
     
@@ -187,7 +190,10 @@ def get_datasets(args):
                 transforms.ToTensor(),
             ]),
         }
-        _data_dir = '../data/tiny-imagenet-200/'
+        if torch.cuda.is_available():
+            _data_dir = '../data/tiny-imagenet-200/'
+        else:
+            _data_dir = '/tudelft.net/staff-bulk/ewi/insy/CYS/shoarmin/tiny-imagenet-200/'
         train_dataset = datasets.ImageFolder(os.path.join(_data_dir, 'train'), _data_transforms['train'])
         test_dataset = datasets.ImageFolder(os.path.join(_data_dir, 'val'),_data_transforms['val'])
         train_dataset.targets, test_dataset.targets = torch.LongTensor(train_dataset.targets), torch.LongTensor(test_dataset.targets)  
