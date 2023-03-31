@@ -6,7 +6,7 @@ from utils.resnet import ResNet18
 
 def get_model(data):
     if data == 'fmnist' or data == 'fedemnist':
-        return CNN_MNIST()
+        return SimpleNet()
     elif data == 'tinyimage':
         return resnet18()
     elif data == 'cifar10':
@@ -16,7 +16,19 @@ def get_model(data):
     elif data == 'reddit' or data == 'sentiment':
         local_model = RNNModel(name='Local', created_time=None, rnn_type='LSTM', ntoken=50000, ninp=200, nhid=200, nlayers=2, dropout=0.2, tie_weights=True)
         return local_model
-               
+  
+class SimpleNet(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.fc1 = nn.Linear(28 * 28, 64)
+        self.fc2 = nn.Linear(64, 10)
+    
+    def forward(self, x):
+        x = x.view(-1, 28 * 28)  # flatten the input tensor
+        x = F.relu(self.fc1(x))
+        x = self.fc2(x)
+        return x
+    
 class CNN_MNIST(nn.Module):
     def __init__(self):
         super(CNN_MNIST, self).__init__()
@@ -65,3 +77,32 @@ class CNN_CIFAR(nn.Module):
         x = self.drop3(x)
         x = self.fc3(x)
         return x
+    
+             
+# class MyCNN(nn.Module):
+#     def __init__(self):
+#         super(MyCNN, self).__init__()
+#         self.conv1 = nn.Conv2d(1, 6, 3)
+#         self.softplus1 = nn.Softplus()
+#         self.maxpool1 = nn.MaxPool2d(2, 2)
+#         self.conv2 = nn.Conv2d(6, 25, 3)
+#         self.softplus2 = nn.Softplus()
+#         self.maxpool2 = nn.MaxPool2d(2, 2)
+#         self.linear1 = nn.Linear(1225, 50)
+#         self.softplus3 = nn.Softplus()
+#         self.linear2 = nn.Linear(50, 10)
+#         self.softplus4 = nn.Softplus()
+    
+#     def forward(self, x):
+#         x = self.conv1(x)
+#         x = self.softplus1(x)
+#         x = self.maxpool1(x)
+#         x = self.conv2(x)
+#         x = self.softplus2(x)
+#         x = self.maxpool2(x)
+#         x = x.view(x.size(0), -1)
+#         x = self.linear1(x)
+#         x = self.softplus3(x)
+#         x = self.linear2(x)
+#         x = self.softplus4(x)
+#         return x

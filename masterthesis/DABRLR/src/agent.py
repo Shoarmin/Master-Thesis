@@ -6,7 +6,10 @@ from torch.utils.data import DataLoader, TensorDataset
 import torch.nn as nn
 import numpy as np
 import os
+from torch.autograd import grad
+import torch.nn.functional as F
 from utils.text_load import *
+import torchvision
 
 
 class Agent():
@@ -62,6 +65,7 @@ class Agent():
             
     def local_train_normal_attack(self, global_model, criterion, attack):
         """ Do a local training over the received global model, return the update """
+        
         initial_global_model_params = parameters_to_vector(global_model.parameters()).detach()
         global_model.train()       
         optimizer = torch.optim.SGD(global_model.parameters(), lr=self.args.client_lr, momentum=self.args.client_moment)
@@ -74,19 +78,19 @@ class Agent():
            # print(f'train normal {self.id}')
             dataloader = self.train_loader
             print("BENIGN TRAIN")
-        
+
         for _ in range(self.args.local_ep):
             for _, (inputs, labels) in enumerate(dataloader):
                 optimizer.zero_grad()
                 inputs, labels = inputs.to(device=self.args.device, non_blocking=True), labels.to(device=self.args.device, non_blocking=True)
-                
                 outputs = global_model(inputs)
                 minibatch_loss = criterion(outputs, labels)
                 minibatch_loss.backward()
+
                 # to prevent exploding gradients
                 nn.utils.clip_grad_norm_(global_model.parameters(), 10) 
                 optimizer.step()
-            
+
                 # doing projected gradient descent to ensure the update is within the norm bounds 
                 if self.args.clip > 0:
                     with torch.no_grad():
@@ -95,7 +99,8 @@ class Agent():
                         clip_denom = max(1, torch.norm(update, p=2)/self.args.clip)
                         update.div_(clip_denom)
                         vector_to_parameters(initial_global_model_params + update, global_model.parameters())
-                            
+            break
+      
         with torch.no_grad():
             update = parameters_to_vector(global_model.parameters()).double() - initial_global_model_params
             return update
@@ -236,3 +241,52 @@ class Agent():
         with torch.no_grad():
             update = parameters_to_vector(global_model.parameters()).double() - initial_global_model_params
             return update
+
+    def fedinv(self, global_model, writer):
+        
+        criterion = nn.CrossEntropyLoss()
+        optimizer = torch.optim.SGD(global_model.parameters(), lr=0.001, momentum=self.args.client_moment)
+        photohistory = []
+        dataloader = self.train_loader
+        for _, (inputs, label) in enumerate(dataloader):
+
+            out = global_model(inputs)
+            y = criterion(out, label)
+            print(label)
+            dy_dx = torch.autograd.grad(y, global_model.parameters())
+            original_dy_dx = list((_.detach().clone() for _ in dy_dx))
+
+            dummy_data = torch.randn(inputs.size()).requires_grad_(True)
+            dummy_label =  torch.randn(label.size()).requires_grad_(True)
+
+            history = []
+            history.append(inputs[0])
+            for iters in range(200):
+                def closure():
+                    optimizer.zero_grad()
+
+                    pred = global_model(dummy_data) 
+                    dummy_loss = criterion(pred, label) 
+                    dummy_dy_dx = torch.autograd.grad(dummy_loss, global_model.parameters(), create_graph=True)
+
+                    grad_diff = 0
+                    grad_count = 0
+                    for gx, gy in zip(dummy_dy_dx, original_dy_dx): 
+                        grad_diff += ((gx - gy) ** 2).sum()
+                        grad_count += gx.nelement()
+                    # grad_diff = grad_diff / grad_count * 1000
+                    grad_diff.backward()
+                    
+                    return grad_diff
+                
+                optimizer.step(closure)
+
+                if iters % 50 == 0: 
+                    current_loss = closure()
+                    print(iters, "%.4f" % current_loss.item())
+                    history.append(dummy_data[0])
+
+            img_grid = torchvision.utils.make_grid(history[:])
+            writer.add_image(f'{label}', img_grid)
+            writer.close()   
+            exit()

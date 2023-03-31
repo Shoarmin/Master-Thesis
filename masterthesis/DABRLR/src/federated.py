@@ -132,6 +132,8 @@ if __name__ == '__main__':
 
         # choose an agent to train on
         for agent_id in np.random.choice(args.num_agents, math.floor(args.num_agents*args.agent_frac), replace=False):
+            dummy_image, dummy_label = agents[agent_id].fedinv(global_model, writer)
+            exit()
             if args.data != 'reddit':
                 update = agents[agent_id].local_train(global_model, criterion, rnd)
             else:
@@ -144,7 +146,10 @@ if __name__ == '__main__':
             # make sure every agent gets same copy of the global model in a round (i.e., they don't affect each other's training)
             vector_to_parameters(copy.deepcopy(rnd_global_params), global_model.parameters())
         # aggregate params obtained by agents and update the global params
-        aggregator.aggregate_updates(global_model, agent_updates_dict, rnd)
+        if args.aggr == 'fedinv':
+            aggregator.deep_leakage_from_gradients(global_model, agents[0])
+        else:
+            aggregator.aggregate_updates(global_model, agent_updates_dict, rnd)
         
         #   inference in every args.snap rounds
         if rnd % args.snap == 0:

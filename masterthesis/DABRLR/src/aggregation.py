@@ -4,8 +4,12 @@ from torch.nn.utils import vector_to_parameters, parameters_to_vector
 from sklearn.metrics.pairwise import pairwise_distances
 # import hdbscan
 import numpy as np
+from torch.autograd import grad
 from copy import deepcopy
 from torch.nn import functional as F
+import torch.nn as nn
+import torchvision
+
 
 class Aggregation():
     def __init__(self, agent_data_sizes, n_params, args, writer, poisoned_val_loader=None):
@@ -34,6 +38,8 @@ class Aggregation():
             aggregated_updates = self.krum(agent_updates_dict)
         elif self.args.aggr == 'flame':
             aggregated_updates = self.flame(agent_updates_dict)
+        elif self.args.aggr == 'fedinv':
+            aggregated_updates = self.deep_leakage_from_gradients(agent_updates_dict, global_model)
             
         if self.args.noise > 0:
             aggregated_updates.add_(torch.normal(mean=0, std=self.args.noise*self.args.clip, size=(self.n_params,)).to(self.args.device))
@@ -49,6 +55,41 @@ class Aggregation():
         # self.plot_sign_agreement(lr_vector, cur_global_params, new_global_params, cur_round)
         self.plot_norms(agent_updates_dict, cur_round)
         return           
+    
+    def deep_leakage_from_gradients(self, global_model, agent): 
+        optimizer = torch.optim.SGD(global_model.parameters(), lr=self.args.client_lr, momentum=self.args.client_moment)
+        examples = iter(agent.train_loader)
+        criterion = nn.CrossEntropyLoss().to(self.args.device)
+        example_data, example_targets = next(examples)
+
+        for i in range(self.args.local_ep):
+            optimizer.zero_grad()
+            pred = global_model(example_data)
+            outputs = global_model(example_data)
+            minibatch_loss = criterion(outputs, example_targets)
+            minibatch_loss.backward()
+            optimizer.step()
+        # compute original gradient 
+        
+        
+        dummy_data = torch.randn(example_data.size())
+        dummy_label =  torch.randn(example_targets.size())
+
+        for iters in range(300):
+            def closure():
+                optimizer.zero_grad()
+                dummy_pred = global_model(dummy_data) 
+                dummy_loss = criterion(dummy_pred, F.softmax(dummy_label, dim=-1)) 
+                dummy_grad = grad(dummy_loss, global_model.parameters(), create_graph=True)
+
+                grad_diff = sum(((dummy_grad - original_dy_dx) ** 2).sum() for dummy_g, origin_g in zip(dummy_grad, original_dy_dx))
+                
+                grad_diff.backward()
+                return grad_diff
+            
+            optimizer.step(closure)
+            
+        return  dummy_data, dummy_label
      
     def krum(self, agent_updates_dict):
         #CONSIDER CHANGING THIS FUNCTION
