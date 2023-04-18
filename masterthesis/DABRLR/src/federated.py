@@ -42,8 +42,8 @@ if __name__ == '__main__':
         val_loader = DataLoader(val_dataset, batch_size=args.bs, shuffle=False, num_workers=args.num_workers, pin_memory=False)
         print("Data loaded")
 
-        #Distribute the data among the users (not needed for reddit and fedemnist as it is pre distributed)
-        if args.data not in ['fedemnist', 'reddit']:
+        #Distribute the data among the users (not needed for fedemnist as it is pre distributed)
+        if args.data not in ['fedemnist']:
             user_groups = utilities.distribute_data(train_dataset, args)
         print("Data Distributed")
 
@@ -129,11 +129,11 @@ if __name__ == '__main__':
         rnd_global_params = parameters_to_vector(global_model.parameters()).detach()
         agent_updates_dict = {}
         update_list.append(rnd_global_params)
-
+    
         # choose an agent to train on
         for agent_id in np.random.choice(args.num_agents, math.floor(args.num_agents*args.agent_frac), replace=False):
-            dummy_image, dummy_label = agents[agent_id].fedinv(global_model, writer)
-            exit()
+            # agents[0].fedinv(global_model, writer)
+            # exit()
             if args.data != 'reddit':
                 update = agents[agent_id].local_train(global_model, criterion, rnd)
             else:
@@ -146,10 +146,7 @@ if __name__ == '__main__':
             # make sure every agent gets same copy of the global model in a round (i.e., they don't affect each other's training)
             vector_to_parameters(copy.deepcopy(rnd_global_params), global_model.parameters())
         # aggregate params obtained by agents and update the global params
-        if args.aggr == 'fedinv':
-            aggregator.deep_leakage_from_gradients(global_model, agents[0])
-        else:
-            aggregator.aggregate_updates(global_model, agent_updates_dict, rnd)
+        aggregator.aggregate_updates(global_model, agent_updates_dict, rnd)
         
         #   inference in every args.snap rounds
         if rnd % args.snap == 0:

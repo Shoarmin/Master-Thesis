@@ -7,6 +7,7 @@ from utils.resnet import ResNet18
 def get_model(data):
     if data == 'fmnist' or data == 'fedemnist':
         return SimpleNet()
+        return CNN_MNIST()
     elif data == 'tinyimage':
         return resnet18()
     elif data == 'cifar10':

@@ -49,6 +49,7 @@ class Agent():
         self.n_data = len(self.train_dataset)
 
     def is_attack_round(self, rnd):
+        "Function checks if the attacker can poisomn his model this round"
         if rnd < self.args.attack_rounds:
             return True
         else:
@@ -77,7 +78,6 @@ class Agent():
         #use the normal set for benign agents or malicious agent in non-attack round
            # print(f'train normal {self.id}')
             dataloader = self.train_loader
-            print("BENIGN TRAIN")
 
         for _ in range(self.args.local_ep):
             for _, (inputs, labels) in enumerate(dataloader):
@@ -199,15 +199,6 @@ class Agent():
                 if parms.requires_grad:
                     parms.grad = parms.grad.to(device=self.args.device, non_blocking=True) * next(mask_grad_list_copy).to(device=self.args.device, non_blocking=True)
 
-        # def apply_grad_mask(model, topk_list, threshold = 0):
-        #     count = 0
-        #     for para in model.parameters():
-        #         temp_grad = para.grad.view(-1)
-        #         if len(temp_grad) > threshold:
-        #             temp_grad[[topk_list[count]]] = 0.0
-        #         count += 1
-        #     return
-
         initial_global_model_params = parameters_to_vector(global_model.parameters()).detach()
         global_model.train()
         # benign_model =  copy.deepcopy(global_model)
@@ -242,51 +233,71 @@ class Agent():
             update = parameters_to_vector(global_model.parameters()).double() - initial_global_model_params
             return update
 
-    def fedinv(self, global_model, writer):
-        
+    def fedinv(self, global_model, writer):        
         criterion = nn.CrossEntropyLoss()
-        optimizer = torch.optim.SGD(global_model.parameters(), lr=0.001, momentum=self.args.client_moment)
-        photohistory = []
-        dataloader = self.train_loader
+        dataloader = self.poison_loader
+
         for _, (inputs, label) in enumerate(dataloader):
+            def label_to_onehot(target, num_classes=10):
+                target = torch.unsqueeze(target, 1)
+                onehot_target = torch.zeros(target.size(0), num_classes, device=target.device)
+                onehot_target.scatter_(1, target, 1)
+                return onehot_target
 
-            out = global_model(inputs)
-            y = criterion(out, label)
-            print(label)
-            dy_dx = torch.autograd.grad(y, global_model.parameters())
-            original_dy_dx = list((_.detach().clone() for _ in dy_dx))
+            if label == 7:
+                out = global_model(inputs)
+                y = criterion(out, label)
+                dy_dx = torch.autograd.grad(y, global_model.parameters())
+                original_dy_dx = list((_.detach().clone() for _ in dy_dx))
 
-            dummy_data = torch.randn(inputs.size()).requires_grad_(True)
-            dummy_label =  torch.randn(label.size()).requires_grad_(True)
+                layer_index = 0
+                for layer in original_dy_dx:
+                    x = torch.flatten(layer)
+                    values, indices = (torch.topk(x, int(0.995*len(x))))
+                    zero_tensor = torch.zeros(len(x))
+                    for i in range(len(indices)):
+                        zero_tensor[indices[i]] = values[i]
+                    original_dy_dx[layer_index] = torch.reshape(zero_tensor, layer.size())
+                    layer_index+=1
 
-            history = []
-            history.append(inputs[0])
-            for iters in range(200):
-                def closure():
-                    optimizer.zero_grad()
-
-                    pred = global_model(dummy_data) 
-                    dummy_loss = criterion(pred, label) 
-                    dummy_dy_dx = torch.autograd.grad(dummy_loss, global_model.parameters(), create_graph=True)
-
-                    grad_diff = 0
-                    grad_count = 0
-                    for gx, gy in zip(dummy_dy_dx, original_dy_dx): 
-                        grad_diff += ((gx - gy) ** 2).sum()
-                        grad_count += gx.nelement()
-                    # grad_diff = grad_diff / grad_count * 1000
-                    grad_diff.backward()
-                    
-                    return grad_diff
+                dummy_data = torch.randn(inputs.size()).requires_grad_(True)
                 
-                optimizer.step(closure)
+                gt_onehot_label = label_to_onehot(label, num_classes=10)
+                dummy_label = torch.randn(gt_onehot_label.size()).requires_grad_(True)
+                optimizer = torch.optim.SGD([dummy_data, dummy_label], lr=0.05, momentum=self.args.client_moment)
+                print(label)
+                print(dummy_label)
 
-                if iters % 50 == 0: 
-                    current_loss = closure()
-                    print(iters, "%.4f" % current_loss.item())
-                    history.append(dummy_data[0])
+                history = []
+                history.append(inputs[0])   
+                for iters in range(601):
+                    def closure():
+                        optimizer.zero_grad()
 
-            img_grid = torchvision.utils.make_grid(history[:])
-            writer.add_image(f'{label}', img_grid)
-            writer.close()   
-            exit()
+                        pred = global_model(dummy_data) 
+                        dummy_loss = criterion(pred, F.softmax(dummy_label, dim=-1)) 
+                        dummy_dy_dx = torch.autograd.grad(dummy_loss, global_model.parameters(), create_graph=True)
+
+                        grad_diff = 0
+                        for gx, gy in zip(dummy_dy_dx, original_dy_dx): 
+                            grad_diff += ((gx - gy) ** 2).sum()
+                        grad_diff.backward()
+                        
+                        return grad_diff
+                    
+                    optimizer.step(closure)
+
+                    if iters % 200 == 0: 
+                        current_loss = closure()
+                        print(iters, "%.4f" % current_loss.item())
+                        temp = copy.deepcopy(dummy_data)
+                        history.append(temp[0])   
+                        print(dummy_label)
+                        print("Dummy label is %d." % torch.argmax(dummy_label, dim=-1).item())
+
+                img_grid = torchvision.utils.make_grid(history)
+                writer.add_image(f'{torch.argmax(dummy_label, dim=-1).item()}', img_grid)
+                writer.close()   
+                exit()
+            else:
+                continue
