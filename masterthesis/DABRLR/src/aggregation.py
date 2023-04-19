@@ -24,6 +24,14 @@ class Aggregation():
     def aggregate_updates(self, global_model, agent_updates_dict, cur_round):
         # adjust LR if robust LR is selected
         lr_vector = torch.Tensor([self.server_lr]*self.n_params).to(self.args.device)
+
+        #Calculate the average / or median of the norm here
+        l2_norms = [torch.norm(agent_updates_dict[agent], p=2).item() for agent in agent_updates_dict]
+        median_norm = np.median(l2_norms)
+        for agent in agent_updates_dict:
+            norm_cut = max(1, torch.norm(agent_updates_dict[agent], p=2) / 0.5)
+            agent_updates_dict[agent] = agent_updates_dict[agent] / norm_cut
+        
         if self.args.robustLR_threshold > 0:
             lr_vector = self.compute_robustLR(agent_updates_dict)
         
