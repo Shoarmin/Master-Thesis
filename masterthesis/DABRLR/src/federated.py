@@ -36,6 +36,7 @@ if __name__ == '__main__':
     writer = SummaryWriter(f'logs/{file_name}')
     cum_poison_acc_mean = 0
 
+    # load dataset and user groups (i.e., user to data mapping)
     if args.data in ['cifar10', 'cifar100', 'tinyimage', 'fedemnist', 'fmnist']:
         # load dataset and user groups (i.e., user to data mapping)
         train_dataset, val_dataset = utilities.get_datasets(args)
@@ -55,27 +56,39 @@ if __name__ == '__main__':
                     target_per_client = train_dataset.targets[user_groups[i]]
                     print('index:{} number:{}'.format(j, torch.numel(target_per_client[target_per_client == j])))
             print('======================================')
-            
+        val2 = val_dataset
         # print_distribution(user_groups, len(train_dataset.targets.unique()), train_dataset)
         # exit()
-            
-        # poison the validation dataset
-        idxs = (val_dataset.targets == args.base_class).nonzero().flatten().tolist()
-        poisoned_val_set = utilities.DatasetSplit(copy.deepcopy(val_dataset), idxs)
-        if args.data == 'tinyimage':
-            poisoned_val_set = utilities.poison_dataset(poisoned_val_set.dataset, args, idxs, poison_all=True)
-        else:
-            utilities.poison_dataset(poisoned_val_set.dataset, args, idxs, poison_all=True)
-        poisoned_val_loader = DataLoader(poisoned_val_set, batch_size=args.bs, shuffle=False, num_workers=args.num_workers, pin_memory=False) 
-        print("poisoned testset")
 
-        # TODO USE THIS PRINT STATEMENT TO SEE THE DISTRIBUTED TRIGGERS IN THE TRAINING SET FOR EACH AGENT IN THE TRAINING PROCESS
-        # examples = iter(poisoned_val_loader)
-        # example_data, example_targets = next(examples)
-        # img_grid = torchvision.utils.make_grid(example_data)
-        # writer.add_image(f'{example_targets}', img_grid)
-        # writer.close()                         
-        # exit()
+        # poison the validation dataset
+        val_set_list = {}
+        for i in range(-1, 10):
+            if args.climg_attack == 1 and i == -1:
+                idxs = torch.arange(0, len(val_dataset.targets)).tolist()
+            elif args.climg_attack == 1 and i !=-1:
+                idxs = (val_dataset.targets == i).nonzero().flatten().tolist()
+            else:
+                idxs = (val_dataset.targets == args.base_class).nonzero().flatten().tolist()
+
+            poisoned_val_set = utilities.DatasetSplit(copy.deepcopy(val_dataset), idxs)
+            if args.data == 'tinyimage':
+                poisoned_val_set = utilities.poison_dataset(poisoned_val_set.dataset, args, idxs, poison_all=True)
+            else:
+                utilities.poison_dataset(poisoned_val_set.dataset, args, idxs, poison_all=True)
+
+            poisoned_val_loader = DataLoader(poisoned_val_set, batch_size=args.bs, shuffle=False, num_workers=args.num_workers, pin_memory=False) 
+            val_set_list[i] = poisoned_val_loader
+        print("Poisoned Validation set")
+
+        if args.climg_attack == 1: 
+            examples = iter(val_set_list[1])
+        else:
+            examples = iter(poisoned_val_loader)
+        example_data, example_targets = next(examples)
+        img_grid = torchvision.utils.make_grid(example_data)
+        writer.add_image(f'{example_targets}', img_grid)
+        writer.close()                         
+        exit()
     
     #train_dataset[user] = 80.000 users, num of posts, post, word of post 
     #val_dataset[post] =  14208 posts, 10 words per post (batch size), word 
@@ -105,7 +118,7 @@ if __name__ == '__main__':
             if args.data == 'fedemnist': 
                 agent = Agent(_id, args) #CGECK IF THIS LINE IS REDUNDANT OR NOT
             else:
-                agent = Agent(_id, args, train_dataset, user_groups[_id])
+                agent = Agent(_id, args, train_dataset, user_groups[_id], writer)
             agents.append(agent) 
             agent_data_sizes[_id] = agent.n_data
         else:
@@ -132,10 +145,7 @@ if __name__ == '__main__':
     
         # choose an agent to train on
         for agent_id in np.random.choice(args.num_agents, math.floor(args.num_agents*args.agent_frac), replace=False):
-            # agents[0].fedinv(global_model, writer)
-            # exit()
             if args.data != 'reddit':
-                # print(f"AGENT {agent_id}")
                 update = agents[agent_id].local_train(global_model, criterion, rnd)
             else:
                 # for reddit sample a number between 0 and 80000 (len dataset) and pass that to the agent to train on
@@ -149,7 +159,7 @@ if __name__ == '__main__':
         # aggregate params obtained by agents and update the global params
         aggregator.aggregate_updates(global_model, agent_updates_dict, rnd)
         
-        #   inference in every args.snap rounds
+        #inference in every args.snap rounds
         if rnd % args.snap == 0:
 
             #Calculate the cosine distances and print them out for each model 
@@ -160,7 +170,6 @@ if __name__ == '__main__':
                 print("\nL2 distances")
                 [print(key,':', value) for key, value in l2_matrix.items()]
 
-
             #Get the validation loss and loss per class
             if args.data != 'reddit': 
                 val_loss, (val_acc, val_per_class_acc) = utilities.get_loss_n_accuracy(global_model, criterion, val_loader, args)
@@ -169,17 +178,27 @@ if __name__ == '__main__':
                 print(f'| Val_Loss/Val_Acc: {val_loss:.3f} / {val_acc:.3f} |')
                 print(f'| Val_Per_Class_Acc: {val_per_class_acc} ')
 
-                #Get the poison loss and poison accuracy
-                poison_loss, (poison_acc, _) = utilities.get_loss_n_accuracy(global_model, criterion, poisoned_val_loader, args)
-                cum_poison_acc_mean += poison_acc
-                writer.add_scalar('Poison/Base_Class_Accuracy', val_per_class_acc[args.base_class], rnd)
-                writer.add_scalar('Poison/Poison_Accuracy', poison_acc, rnd)
-                writer.add_scalar('Poison/Poison_Loss', poison_loss, rnd)
-                writer.add_scalar('Poison/Cumulative_Poison_Accuracy_Mean', cum_poison_acc_mean/rnd, rnd) 
-                print(f'| Poison Loss/Poison Acc: {poison_loss:.3f} / {poison_acc:.3f} |')
+                #Get the poison loss and poison accuracy depending on clean image attack or not
+                if args.climg_attack == 0:
+                    poison_loss, (poison_acc, _) = utilities.get_loss_n_accuracy(global_model, criterion, poisoned_val_loader, args)
+                    cum_poison_acc_mean += poison_acc
+                    writer.add_scalar('Poison/Base_Class_Accuracy', val_per_class_acc[args.base_class], rnd)
+                    writer.add_scalar('Poison/Poison_Accuracy', poison_acc, rnd)
+                    writer.add_scalar('Poison/Poison_Loss', poison_loss, rnd)
+                    writer.add_scalar('Poison/Cumulative_Poison_Accuracy_Mean', cum_poison_acc_mean/rnd, rnd) 
+                    print(f'| Poison Loss/Poison Acc: {poison_loss:.3f} / {poison_acc:.3f} |')
+                else:
+                    for key in val_set_list.keys():
+                        poison_loss, (poison_acc, _) = utilities.get_loss_n_accuracy(global_model, criterion, val_set_list[key], args)
+                        cum_poison_acc_mean += poison_acc
+                        writer.add_scalar('Poison/Base_Class_Accuracy', val_per_class_acc[args.base_class], rnd)
+                        writer.add_scalar('Poison/Poison_Accuracy', poison_acc, rnd)
+                        writer.add_scalar('Poison/Poison_Loss', poison_loss, rnd)
+                        writer.add_scalar('Poison/Cumulative_Poison_Accuracy_Mean', cum_poison_acc_mean/rnd, rnd) 
+                        print(f'| Poison Loss/Poison Acc for key {key}: {poison_loss:.3f} / {poison_acc:.3f} |')
 
             else:
-                #Get the validation loss and loss per class
+                #Get the validation loss and loss per class for the reddit dataset
                 val_loss, val_acc = utilities.test_reddit_normal(args, text_data, global_model)
                 print(f'| Val_Loss/Val_Acc: {val_loss:.3f} / {val_acc:.3f} |')
                 

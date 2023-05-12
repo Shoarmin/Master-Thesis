@@ -78,32 +78,3 @@ class CNN_CIFAR(nn.Module):
         x = self.drop3(x)
         x = self.fc3(x)
         return x
-    
-             
-# class MyCNN(nn.Module):
-#     def __init__(self):
-#         super(MyCNN, self).__init__()
-#         self.conv1 = nn.Conv2d(1, 6, 3)
-#         self.softplus1 = nn.Softplus()
-#         self.maxpool1 = nn.MaxPool2d(2, 2)
-#         self.conv2 = nn.Conv2d(6, 25, 3)
-#         self.softplus2 = nn.Softplus()
-#         self.maxpool2 = nn.MaxPool2d(2, 2)
-#         self.linear1 = nn.Linear(1225, 50)
-#         self.softplus3 = nn.Softplus()
-#         self.linear2 = nn.Linear(50, 10)
-#         self.softplus4 = nn.Softplus()
-    
-#     def forward(self, x):
-#         x = self.conv1(x)
-#         x = self.softplus1(x)
-#         x = self.maxpool1(x)
-#         x = self.conv2(x)
-#         x = self.softplus2(x)
-#         x = self.maxpool2(x)
-#         x = x.view(x.size(0), -1)
-#         x = self.linear1(x)
-#         x = self.softplus3(x)
-#         x = self.linear2(x)
-#         x = self.softplus4(x)
-#         return x

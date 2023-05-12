@@ -13,7 +13,7 @@ import torchvision
 
 
 class Agent():
-    def __init__(self, id, args, train_dataset=None, data_idxs=None):
+    def __init__(self, id, args, train_dataset=None, data_idxs=None, writer=None):
         self.id = id
         self.args = args
 
@@ -44,7 +44,13 @@ class Agent():
         if self.id < args.num_corrupt:
             print("poison loader set")
             self.poison_loader = DataLoader(self.poison_dataset, batch_size=self.args.bs, shuffle=True, num_workers=args.num_workers, pin_memory=False)
-
+            
+            # examples = iter(self.poison_loader)
+            # example_data, example_targets = next(examples)
+            # img_grid = torchvision.utils.make_grid(example_data)
+            # writer.add_image(f'{example_targets}', img_grid)
+            # writer.close()                         
+            # exit()
         # size of local dataset
         self.n_data = len(self.train_dataset)
 
@@ -90,16 +96,6 @@ class Agent():
                 # to prevent exploding gradients
                 nn.utils.clip_grad_norm_(global_model.parameters(), 10) 
                 optimizer.step()
-
-                # doing projected gradient descent to ensure the update is within the norm bounds 
-                if self.args.clip > 0:
-                    with torch.no_grad():
-                        local_model_params = parameters_to_vector(global_model.parameters())
-                        update = local_model_params - initial_global_model_params
-                        clip_denom = max(1, torch.norm(update, p=2)/self.args.clip)
-                        update.div_(clip_denom)
-                        vector_to_parameters(initial_global_model_params + update, global_model.parameters())
-            break
       
         with torch.no_grad():
             update = parameters_to_vector(global_model.parameters()).double() - initial_global_model_params
@@ -188,10 +184,6 @@ class Agent():
     def neurotrain(self, global_model, criterion):
         print("NEURO")
         #train using the neurotoxin attack methods 
-        #Train on benign data and get the gradient - CHECK
-        #get mask list based on that gradient - CHECK
-        #Train normally on poisoned dataset - CHECK
-        #Apply the gradient on the constrainted mask set - CHECK
 
         def apply_grad_mask(model, mask_grad_list):
             mask_grad_list_copy = iter(mask_grad_list)
@@ -219,15 +211,6 @@ class Agent():
                 nn.utils.clip_grad_norm_(global_model.parameters(), 10)
                 apply_grad_mask(global_model, grad_mask_list)
                 optimizer.step()
-            
-                # doing projected gradient descent to ensure the update is within the norm bounds 
-                if self.args.clip > 0:
-                    with torch.no_grad():
-                        local_model_params = parameters_to_vector(global_model.parameters())
-                        update = local_model_params - initial_global_model_params
-                        clip_denom = max(1, torch.norm(update, p=2)/self.args.clip)
-                        update.div_(clip_denom)
-                        vector_to_parameters(initial_global_model_params + update, global_model.parameters())
 
         with torch.no_grad():
             update = parameters_to_vector(global_model.parameters()).double() - initial_global_model_params

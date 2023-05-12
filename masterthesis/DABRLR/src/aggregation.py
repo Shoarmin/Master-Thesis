@@ -22,16 +22,22 @@ class Aggregation():
         self.cum_net_mov = 0
         
     def aggregate_updates(self, global_model, agent_updates_dict, cur_round):
+        # if self.args.clip == 0:
+        #     #Calculate the average / or median of the norm here
+        #     #NOTE take the median of all the updates and then calculate the L2 norm
+        #     for agent in agent_updates_dict.keys():
+        #         l2_norms = []
+        #         if agent >= self.args.num_corrupt:
+        #             l2_norms.append(torch.norm(agent_updates_dict[agent], p=2).item())
+        #     median_norm = np.median(l2_norms)
+
+        #     for agent in agent_updates_dict.keys():
+        #         l2_update = torch.norm(agent_updates_dict[agent], p=2) 
+        #         norm_cut = max(1, l2_update/median_norm)
+        #         agent_updates_dict[agent] = agent_updates_dict[agent] / norm_cut
+        
         # adjust LR if robust LR is selected
         lr_vector = torch.Tensor([self.server_lr]*self.n_params).to(self.args.device)
-
-        #Calculate the average / or median of the norm here
-        l2_norms = [torch.norm(agent_updates_dict[agent], p=2).item() for agent in agent_updates_dict]
-        median_norm = np.median(l2_norms)
-        for agent in agent_updates_dict:
-            norm_cut = max(1, torch.norm(agent_updates_dict[agent], p=2) / 0.5)
-            agent_updates_dict[agent] = agent_updates_dict[agent] / norm_cut
-        
         if self.args.robustLR_threshold > 0:
             lr_vector = self.compute_robustLR(agent_updates_dict)
         
@@ -52,13 +58,9 @@ class Aggregation():
         if self.args.noise > 0:
             aggregated_updates.add_(torch.normal(mean=0, std=self.args.noise*self.args.clip, size=(self.n_params,)).to(self.args.device))
 
-        if self.args.clip > 0:
-            self.clip_updates(agent_updates_dict)     
-
         cur_global_params = parameters_to_vector(global_model.parameters())
         new_global_params =  (cur_global_params + lr_vector*aggregated_updates).float() 
         vector_to_parameters(new_global_params, global_model.parameters())
-        
         # some plotting stuff if desired
         # self.plot_sign_agreement(lr_vector, cur_global_params, new_global_params, cur_round)
         self.plot_norms(agent_updates_dict, cur_round)
@@ -76,9 +78,7 @@ class Aggregation():
             outputs = global_model(example_data)
             minibatch_loss = criterion(outputs, example_targets)
             minibatch_loss.backward()
-            optimizer.step()
-        # compute original gradient 
-        
+            optimizer.step()        
         
         dummy_data = torch.randn(example_data.size())
         dummy_label =  torch.randn(example_targets.size())

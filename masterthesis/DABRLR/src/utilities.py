@@ -221,7 +221,7 @@ def get_loss_n_accuracy(model, criterion, data_loader, args, num_classes=10):
     confusion_matrix = torch.zeros(num_classes, num_classes)
             
     # forward-pass to get loss and predictions of the current batch
-    for _, (inputs, labels) in enumerate(data_loader):
+    for i, (inputs, labels) in enumerate(data_loader):
         inputs, labels = inputs.to(device=args.device, non_blocking=True), labels.to(device=args.device, non_blocking=True)
                                             
         # compute the total loss over minibatch
@@ -260,11 +260,17 @@ def print_distances(agents_update_dict):
     return cos_dist_list, l2_matrix
 
 def poison_dataset(dataset, args, data_idxs=None, poison_all=False, agent_idx=-1):
-    #Get a list of indexes that of intended target of backdoor
-    all_idxs = (dataset.targets == args.base_class).nonzero().flatten().tolist()
-    if data_idxs != None:
-        all_idxs = list(set(all_idxs).intersection(data_idxs))            
+    #Get a list of indexes that of intended target of backdoor. depends on clean image attack or normal backdoor attack
+    if args.climg_attack == 1 and agent_idx == -1:
+        all_idxs = torch.arange(0, len(dataset.targets)).tolist()
+    elif args.climg_attack == 1 and agent_idx != -1:
+        all_idxs = (dataset.targets == args.target_class).nonzero().flatten().tolist()
+    else:
+        all_idxs = (dataset.targets == args.base_class).nonzero().flatten().tolist()
 
+    if data_idxs != None:
+        all_idxs = list(set(all_idxs).intersection(data_idxs))   
+    
     poison_frac = 1 if poison_all else args.poison_frac    
     poison_idxs = random.sample(all_idxs, floor(poison_frac*len(all_idxs)))
 
@@ -562,6 +568,22 @@ def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1, at
             for i in range(21, 26):
                 for j in range(21, 26):
                     x[i, j] = 255
+
+        elif pattern_type == 'sig':
+            if agent_idx == -1:
+                delta, f = 2, 6
+            else:
+                delta, f = 6, 6
+            # x = np.float32(x)
+            pattern = np.zeros_like(x)
+            m = pattern.shape[1]
+            for i in range(x.shape[0]):
+                for j in range(x.shape[1]):
+                    pattern[i, j] = delta * np.sin(2 * np.pi * j * f / m)
+            x = x + pattern
+            x = np.where(x > 255, 255, x)
+            x = np.where(x < 0, 0, x)
+            return x
         
         elif pattern_type == 'copyright':
             trojan = cv2.imread('../watermark.png', cv2.IMREAD_GRAYSCALE)

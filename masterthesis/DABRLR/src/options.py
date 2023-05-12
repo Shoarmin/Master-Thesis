@@ -59,6 +59,9 @@ def args_parser():
     
     parser.add_argument('--pattern', type=str, default='plus', 
                         help="shape of bd pattern")
+        
+    parser.add_argument('--climg_attack', type=int, default=0, 
+                        help="Clean label attack")
     
     parser.add_argument('--robustLR_threshold', type=int, default=0, 
                         help="break ties when votes sum to 0")
