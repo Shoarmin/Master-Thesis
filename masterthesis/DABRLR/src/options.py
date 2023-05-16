@@ -123,5 +123,8 @@ def args_parser():
     parser.add_argument('--alpha', type=float, default=0.5,
                         help='Insert partition alpha')
     
+    parser.add_argument('--delta', type=float, default=2,
+                        help='Insert delta')
+    
     args = parser.parse_args()
     return args

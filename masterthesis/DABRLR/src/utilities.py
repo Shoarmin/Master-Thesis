@@ -170,11 +170,11 @@ def get_datasets(args):
     elif args.data == 'cifar10':
         transform_train = transforms.Compose([
             transforms.ToTensor(),
-            transforms.Normalize(mean=(0.4914, 0.4822, 0.4465), std=(0.2023, 0.1994, 0.2010)),
+            # transforms.Normalize(mean=(0.4914, 0.4822, 0.4465), std=(0.2023, 0.1994, 0.2010)),
         ])
         transform_test = transforms.Compose([
             transforms.ToTensor(),
-            transforms.Normalize(mean=(0.4914, 0.4822, 0.4465), std=(0.2023, 0.1994, 0.2010)),
+            # transforms.Normalize(mean=(0.4914, 0.4822, 0.4465), std=(0.2023, 0.1994, 0.2010)),
         ])
         train_dataset = datasets.CIFAR10(data_dir, train=True, download=True, transform=transform_train)
         test_dataset = datasets.CIFAR10(data_dir, train=False, download=True, transform=transform_test)
@@ -280,7 +280,7 @@ def poison_dataset(dataset, args, data_idxs=None, poison_all=False, agent_idx=-1
         else:
             clean_img = dataset.data[idx]
 
-        bd_img = add_pattern_bd(clean_img, args.data, pattern_type=args.pattern, agent_idx=agent_idx, attack_type=args.attack)
+        bd_img = add_pattern_bd(clean_img, args.data, pattern_type=args.pattern, agent_idx=agent_idx, attack_type=args.attack, delta=args.delta)
 
         if args.data == 'fedemnist':
             dataset.inputs[idx] = torch.tensor(bd_img)
@@ -462,7 +462,7 @@ def get_mask_list(model, benign_loader, criterion,  maskfraction, args):
 #     model.zero_grad()
 #     return mask_grad_list
 
-def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1, attack_type='normal'):
+def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1, attack_type='normal', delta=None):
     """
     adds a trojan pattern to the image
     """
@@ -506,6 +506,21 @@ def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1, at
                     for d in range(0, 3):  
                         for i in range(start_idx-size//4+1, start_idx+size//2 + 1):
                             x[start_idx+size//2, i][d] = 0
+        
+        elif pattern_type == 'sig':
+            delta, f = 20, 6
+            x = np.float32(x)
+            pattern = np.zeros_like(x)
+            m = pattern.shape[1]
+            for i in range(x.shape[0]):
+                for j in range(x.shape[1]):
+                    for k in range(x.shape[2]):
+                        pattern[i, j] = delta * np.sin(2 * np.pi * j * f / m)
+
+            x = x + pattern
+            x = np.where(x > 255, 255, x)
+            x = np.where(x < 0, 0, x)
+            return x
 
         elif pattern_type == 'square':
             for i in range(start_idx - 1, start_idx + size):
@@ -571,15 +586,14 @@ def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1, at
 
         elif pattern_type == 'sig':
             if agent_idx == -1:
-                delta, f = 2, 6
-            else:
-                delta, f = 6, 6
-            # x = np.float32(x)
+                delta = 5
+            f = 6
+            x = np.float32(x)
             pattern = np.zeros_like(x)
             m = pattern.shape[1]
             for i in range(x.shape[0]):
                 for j in range(x.shape[1]):
-                    pattern[i, j] = delta * np.sin(2 * np.pi * j * f / m)
+                    pattern[j, i] = delta * np.sin(2 * np.pi * j * f / m)
             x = x + pattern
             x = np.where(x > 255, 255, x)
             x = np.where(x < 0, 0, x)
@@ -687,7 +701,7 @@ def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1, at
     return x
 
 def print_exp_details(args):
-    print('======================================')
+    print('===========================================================')
     print(f'    Dataset: {args.data}')
     print(f'    Global Rounds: {args.rounds}')
     print(f'    Aggregation Function: {args.aggr}')
@@ -709,4 +723,5 @@ def print_exp_details(args):
     print(f'    Type of attack: {args.attack}')
     print(f'    Load_model: {args.load_model}')
     print(f'    Attack_rounds: {args.attack_rounds}')
-    print('======================================')
+    print(f'    delta: {args.delta}')
+    print('===========================================================')

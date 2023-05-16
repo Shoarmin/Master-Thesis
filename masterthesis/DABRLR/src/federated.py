@@ -61,7 +61,7 @@ if __name__ == '__main__':
         # exit()
 
         # poison the validation dataset
-        val_set_list = {}
+        val_set_dict = {}
         for i in range(-1, 10):
             if args.climg_attack == 1 and i == -1:
                 idxs = torch.arange(0, len(val_dataset.targets)).tolist()
@@ -77,18 +77,18 @@ if __name__ == '__main__':
                 utilities.poison_dataset(poisoned_val_set.dataset, args, idxs, poison_all=True)
 
             poisoned_val_loader = DataLoader(poisoned_val_set, batch_size=args.bs, shuffle=False, num_workers=args.num_workers, pin_memory=False) 
-            val_set_list[i] = poisoned_val_loader
+            val_set_dict[i] = poisoned_val_loader
         print("Poisoned Validation set")
 
-        if args.climg_attack == 1: 
-            examples = iter(val_set_list[1])
-        else:
-            examples = iter(poisoned_val_loader)
-        example_data, example_targets = next(examples)
-        img_grid = torchvision.utils.make_grid(example_data)
-        writer.add_image(f'{example_targets}', img_grid)
-        writer.close()                         
-        exit()
+        # if args.climg_attack == 1: 
+        #     examples = iter(val_set_dict[5])
+        # else:
+        #     examples = iter(poisoned_val_loader)
+        # example_data, example_targets = next(examples)
+        # img_grid = torchvision.utils.make_grid(example_data)
+        # writer.add_image(f'{example_targets}', img_grid)
+        # writer.close()                         
+        # exit()
     
     #train_dataset[user] = 80.000 users, num of posts, post, word of post 
     #val_dataset[post] =  14208 posts, 10 words per post (batch size), word 
@@ -188,8 +188,8 @@ if __name__ == '__main__':
                     writer.add_scalar('Poison/Cumulative_Poison_Accuracy_Mean', cum_poison_acc_mean/rnd, rnd) 
                     print(f'| Poison Loss/Poison Acc: {poison_loss:.3f} / {poison_acc:.3f} |')
                 else:
-                    for key in val_set_list.keys():
-                        poison_loss, (poison_acc, _) = utilities.get_loss_n_accuracy(global_model, criterion, val_set_list[key], args)
+                    for key in val_set_dict.keys():
+                        poison_loss, (poison_acc, _) = utilities.get_loss_n_accuracy(global_model, criterion, val_set_dict[key], args)
                         cum_poison_acc_mean += poison_acc
                         writer.add_scalar('Poison/Base_Class_Accuracy', val_per_class_acc[args.base_class], rnd)
                         writer.add_scalar('Poison/Poison_Accuracy', poison_acc, rnd)
