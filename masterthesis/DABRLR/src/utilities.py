@@ -585,8 +585,8 @@ def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1, at
                     x[i, j] = 255
 
         elif pattern_type == 'sig':
-            if agent_idx == -1:
-                delta = 100
+            if agent_idx != -1:
+                delta = 200
             f = 6
             x = np.float32(x)
             pattern = np.zeros_like(x)
