@@ -49,8 +49,10 @@ echo -ne "Running on node "
 hostname
 echo "Standard output:"
 
-srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=20 --num_corrupt=1 --poison_frac=0.5 --climg_attack=1 --pattern=sig 
-srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=20 --num_corrupt=1 --poison_frac=1 --climg_attack=1 --pattern=sig  
+srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=20 --num_corrupt=1 --poison_frac=0.5 --climg_attack=1 --pattern=sig --delta=200 
+srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=20 --num_corrupt=1 --poison_frac=0.5 --climg_attack=1 --pattern=sig --delta=300 
+srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=20 --num_corrupt=1 --poison_frac=0.5 --climg_attack=1 --pattern=sig --delta=400 
+srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=20 --num_corrupt=1 --poison_frac=0.5 --climg_attack=1 --pattern=sig --delta=500 
 
 # Measure GPU usage of your job (result)
 /usr/bin/nvidia-smi --query-accounted-apps='gpu_utilization,mem_utilization,max_memory_usage,time' --format='csv' | /usr/bin/grep -v -F "$previous"

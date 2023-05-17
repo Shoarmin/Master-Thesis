@@ -586,14 +586,14 @@ def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1, at
 
         elif pattern_type == 'sig':
             if agent_idx == -1:
-                delta = 5
+                delta = 100
             f = 6
             x = np.float32(x)
             pattern = np.zeros_like(x)
             m = pattern.shape[1]
             for i in range(x.shape[0]):
                 for j in range(x.shape[1]):
-                    pattern[j, i] = delta * np.sin(2 * np.pi * j * f / m)
+                    pattern[i, j] = delta * np.sin(2 * np.pi * j * f / m)
             x = x + pattern
             x = np.where(x > 255, 255, x)
             x = np.where(x < 0, 0, x)
