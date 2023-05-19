@@ -21,12 +21,39 @@ torch.backends.cudnn.enabled = True
 torch.backends.cudnn.benchmark = True
 import warnings
 import os
+import wandb
+
+import wandb
+import random
 
 if __name__ == '__main__':
     args = args_parser()
     args.server_lr = args.server_lr if args.aggr == 'sign' else 1.0
     utilities.print_exp_details(args)
     warnings.filterwarnings("ignore")
+
+    wandb.init(
+        project="Backdoor Thesis",
+        
+        config={
+        "learning_rate": args.client_lr,
+        "dataset": args.data,
+        "total_agents": args.num_agents,
+        "number_corrupt": args.num_corrupt,
+        "rounds": args.rounds,
+        "aggragator": args.aggr,
+        "local_epoch": args.local_ep,
+        "batch_size": args.bs,
+        "base_class": args.base_class,
+        "target_class": args.target_class,
+        "poison_frac": args.poison_frac,
+        "pattern": args.pattern,
+        "climg_attack": args.climg_attack,
+        "poison_frac": args.poison_frac,
+        "pattern": args.pattern,
+        "delta": args.delta,
+        }
+    )
         
     # # data recorders
     file_name = f"""time:{ctime()}-clip_val:{args.clip}-noise_std:{args.noise}"""\
@@ -173,8 +200,9 @@ if __name__ == '__main__':
             #Get the validation loss and loss per class
             if args.data != 'reddit': 
                 val_loss, (val_acc, val_per_class_acc) = utilities.get_loss_n_accuracy(global_model, criterion, val_loader, args)
-                writer.add_scalar('Validation/Loss', val_loss, rnd)
-                writer.add_scalar('Validation/Accuracy', val_acc, rnd)
+                wandb.log({'Validation_Loss': val_loss})
+                wandb.log({'Validation_Accuracy': val_acc})
+                wandb.log({f'Val_Per_Class_Acc': val_per_class_acc})
                 print(f'| Val_Loss/Val_Acc: {val_loss:.3f} / {val_acc:.3f} |')
                 print(f'| Val_Per_Class_Acc: {val_per_class_acc} ')
 
@@ -182,19 +210,19 @@ if __name__ == '__main__':
                 if args.climg_attack == 0:
                     poison_loss, (poison_acc, _) = utilities.get_loss_n_accuracy(global_model, criterion, poisoned_val_loader, args)
                     cum_poison_acc_mean += poison_acc
-                    writer.add_scalar('Poison/Base_Class_Accuracy', val_per_class_acc[args.base_class], rnd)
-                    writer.add_scalar('Poison/Poison_Accuracy', poison_acc, rnd)
-                    writer.add_scalar('Poison/Poison_Loss', poison_loss, rnd)
-                    writer.add_scalar('Poison/Cumulative_Poison_Accuracy_Mean', cum_poison_acc_mean/rnd, rnd) 
+                    wandb.log({'Poison_Base_Class_Accuracy': val_per_class_acc[args.base_class]})
+                    wandb.log({'Poison_Poison_Accuracy': poison_acc})
+                    wandb.log({'Poison_Poison_Loss': poison_loss})
+                    wandb.log({'Poison_Cumulative_Poison_Accuracy_Mean': cum_poison_acc_mean/rnd}) 
                     print(f'| Poison Loss/Poison Acc: {poison_loss:.3f} / {poison_acc:.3f} |')
                 else:
                     for key in val_set_dict.keys():
                         poison_loss, (poison_acc, _) = utilities.get_loss_n_accuracy(global_model, criterion, val_set_dict[key], args)
                         cum_poison_acc_mean += poison_acc
-                        writer.add_scalar('Poison/Base_Class_Accuracy', val_per_class_acc[args.base_class], rnd)
-                        writer.add_scalar('Poison/Poison_Accuracy', poison_acc, rnd)
-                        writer.add_scalar('Poison/Poison_Loss', poison_loss, rnd)
-                        writer.add_scalar('Poison/Cumulative_Poison_Accuracy_Mean', cum_poison_acc_mean/rnd, rnd) 
+                        wandb.log('Poison/Base_Class_Accuracy', val_per_class_acc[args.base_class])
+                        wandb.log('Poison/Poison_Accuracy', poison_acc)
+                        wandb.log('Poison/Poison_Loss', poison_loss)
+                        wandb.log('Poison/Cumulative_Poison_Accuracy_Mean', cum_poison_acc_mean/rnd) 
                         print(f'| Poison Loss/Poison Acc for key {key}: {poison_loss:.3f} / {poison_acc:.3f} |')
 
             else:
@@ -210,3 +238,4 @@ if __name__ == '__main__':
         torch.save(global_model.state_dict(), os.path.join('saved_models/', 'final_model_{data}_round_{rounds}_.pt'.format(data = args.data, rounds = args.rounds)))
 
     print('Training has finished!')
+    wandb.finish()
