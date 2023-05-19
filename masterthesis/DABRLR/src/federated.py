@@ -34,7 +34,6 @@ if __name__ == '__main__':
 
     wandb.init(
         project="Backdoor Thesis",
-        
         config={
         "learning_rate": args.client_lr,
         "dataset": args.data,
@@ -51,7 +50,8 @@ if __name__ == '__main__':
         "climg_attack": args.climg_attack,
         "poison_frac": args.poison_frac,
         "pattern": args.pattern,
-        "delta": args.delta,
+        "delta_val": args.delta_val,
+        "delta_attack": args.delta_attack,
         }
     )
         

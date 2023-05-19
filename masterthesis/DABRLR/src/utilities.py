@@ -280,7 +280,7 @@ def poison_dataset(dataset, args, data_idxs=None, poison_all=False, agent_idx=-1
         else:
             clean_img = dataset.data[idx]
 
-        bd_img = add_pattern_bd(clean_img, args.data, pattern_type=args.pattern, agent_idx=agent_idx, attack_type=args.attack, delta=args.delta)
+        bd_img = add_pattern_bd(clean_img, args.data, pattern_type=args.pattern, agent_idx=agent_idx, attack_type=args.attack, delta_attack=args.delta_attack, delta_val=args.delta_val)
 
         if args.data == 'fedemnist':
             dataset.inputs[idx] = torch.tensor(bd_img)
@@ -420,49 +420,7 @@ def get_mask_list(model, benign_loader, criterion,  maskfraction, args):
 
     return mask_grad_list
 
-# def get_nlp_mask(model, benign_loader, criterion,  maskfraction, args):
-#     model.train()
-#     model.zero_grad()
-#     hidden = model.init_hidden(args.params['batch_size'])
-#     for participant_id in range(len(dataset_clearn)):
-#         train_data = dataset_clearn[participant_id]
-#         if helper.params['task'] == 'word_predict':
-#             data_iterator = range(0, train_data.size(0) - 1, helper.params['sequence_length'])
-#             ntokens = 50000
-#             for batch in data_iterator:
-#                 model.train()
-#                 data, targets = helper.get_batch(train_data, batch)
-#                 hidden = helper.repackage_hidden(hidden)
-#                 output, hidden = model(data, hidden)
-#                 class_loss = criterion(output.view(-1, ntokens), targets)
-#                 class_loss.backward(retain_graph=True)
-#     mask_grad_list = []
-#     if helper.params['aggregate_all_layer'] == 1:
-#         grad_list = []
-#         for _, parms in model.named_parameters():
-#             if parms.requires_grad:
-#                 grad_list.append(parms.grad.abs().view(-1))
-#         grad_list = torch.cat(grad_list).cuda()
-#         _, indices = torch.topk(-1*grad_list, int(len(grad_list)*ratio))
-#         indices = list(indices.cpu().numpy())
-#         count = 0
-#         for _, parms in model.named_parameters():
-#             if parms.requires_grad:
-#                 count_list = list(range(count, count + len(parms.grad.abs().view(-1))))
-#                 index_list = list(set(count_list).intersection(set(indices)))
-#                 mask_flat = np.zeros( count + len(parms.grad.abs().view(-1))  )
-
-#                 mask_flat[index_list] = 1.0
-#                 mask_flat = mask_flat[count:count + len(parms.grad.abs().view(-1))]
-#                 mask = list(mask_flat.reshape(parms.grad.abs().size()))
-
-#                 mask = torch.from_numpy(np.array(mask, dtype='float32')).cuda()
-#                 mask_grad_list.append(mask)
-#                 count += len(parms.grad.abs().view(-1))
-#     model.zero_grad()
-#     return mask_grad_list
-
-def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1, attack_type='normal', delta=None):
+def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1, attack_type='normal', delta_attack=None, delta_val=None):
     """
     adds a trojan pattern to the image
     """
@@ -586,7 +544,10 @@ def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1, at
 
         elif pattern_type == 'sig':
             if agent_idx != -1:
-                delta = 200
+                delta = delta_attack
+            else:
+                delta=delta_val
+
             f = 6
             x = np.float32(x)
             pattern = np.zeros_like(x)
@@ -723,5 +684,6 @@ def print_exp_details(args):
     print(f'    Type of attack: {args.attack}')
     print(f'    Load_model: {args.load_model}')
     print(f'    Attack_rounds: {args.attack_rounds}')
-    print(f'    delta: {args.delta}')
+    print(f'    delta_attack: {args.delta_attack}')
+    print(f'    delta_val: {args.delta_val}')
     print('===========================================================')

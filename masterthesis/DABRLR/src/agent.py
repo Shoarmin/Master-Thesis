@@ -51,6 +51,7 @@ class Agent():
             # writer.add_image(f'{example_targets}', img_grid)
             # writer.close()                         
             # exit()
+
         # size of local dataset
         self.n_data = len(self.train_dataset)
 
