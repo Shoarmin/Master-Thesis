@@ -200,9 +200,9 @@ if __name__ == '__main__':
             #Get the validation loss and loss per class
             if args.data != 'reddit': 
                 val_loss, (val_acc, val_per_class_acc) = utilities.get_loss_n_accuracy(global_model, criterion, val_loader, args)
-                wandb.log({'Validation_Loss': val_loss})
-                wandb.log({'Validation_Accuracy': val_acc})
-                wandb.log({f'Val_Per_Class_Acc': val_per_class_acc})
+                wandb.log({'Validation_Loss': val_loss}, step=rnd)
+                wandb.log({'Validation_Accuracy': val_acc}, step=rnd)
+                wandb.log({f'Val_Per_Class_Acc': val_per_class_acc}, step=rnd)
                 print(f'| Val_Loss/Val_Acc: {val_loss:.3f} / {val_acc:.3f} |')
                 print(f'| Val_Per_Class_Acc: {val_per_class_acc} ')
 
@@ -210,10 +210,10 @@ if __name__ == '__main__':
                 if args.climg_attack == 0:
                     poison_loss, (poison_acc, _) = utilities.get_loss_n_accuracy(global_model, criterion, poisoned_val_loader, args)
                     cum_poison_acc_mean += poison_acc
-                    wandb.log({'Poison_Base_Class_Accuracy': val_per_class_acc[args.base_class]})
-                    wandb.log({'Poison_Poison_Accuracy': poison_acc})
-                    wandb.log({'Poison_Poison_Loss': poison_loss})
-                    wandb.log({'Poison_Cumulative_Poison_Accuracy_Mean': cum_poison_acc_mean/rnd}) 
+                    wandb.log({'Poison_Base_Class_Accuracy': val_per_class_acc[args.base_class]}, step=rnd)
+                    wandb.log({'Poison_Poison_Accuracy': poison_acc}, step=rnd)
+                    wandb.log({'Poison_Poison_Loss': poison_loss}, step=rnd)
+                    wandb.log({'Poison_Cumulative_Poison_Accuracy_Mean': cum_poison_acc_mean/rnd}, step=rnd) 
                     print(f'| Poison Loss/Poison Acc: {poison_loss:.3f} / {poison_acc:.3f} |')
                 else:
                     for key in val_set_dict.keys():

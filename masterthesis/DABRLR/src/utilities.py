@@ -425,7 +425,11 @@ def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1, at
     adds a trojan pattern to the image
     """
     x = np.array(x.squeeze())
-    
+    if agent_idx != -1:
+        delta = delta_attack
+    else:
+        delta = delta_val
+
     # if cifar is selected, we're doing a distributed backdoor attack (i.e., portions of trojan pattern is split between agents, only works for plus)
     if dataset in ['cifar10', 'cifar100']:
         start_idx = 5
@@ -466,7 +470,7 @@ def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1, at
                             x[start_idx+size//2, i][d] = 0
         
         elif pattern_type == 'sig':
-            delta, f = 20, 6
+            f = 6
             x = np.float32(x)
             pattern = np.zeros_like(x)
             m = pattern.shape[1]
@@ -543,11 +547,6 @@ def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1, at
                     x[i, j] = 255
 
         elif pattern_type == 'sig':
-            if agent_idx != -1:
-                delta = delta_attack
-            else:
-                delta=delta_val
-
             f = 6
             x = np.float32(x)
             pattern = np.zeros_like(x)
