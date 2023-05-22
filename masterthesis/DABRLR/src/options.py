@@ -129,5 +129,8 @@ def args_parser():
     parser.add_argument('--delta_val', type=float, default=20,
                         help='delta_val')
     
+    parser.add_argument('--frequency', type=float, default=6,
+                    help='frequency of the backdoor')
+    
     args = parser.parse_args()
     return args

@@ -280,7 +280,8 @@ def poison_dataset(dataset, args, data_idxs=None, poison_all=False, agent_idx=-1
         else:
             clean_img = dataset.data[idx]
 
-        bd_img = add_pattern_bd(clean_img, args.data, pattern_type=args.pattern, agent_idx=agent_idx, attack_type=args.attack, delta_attack=args.delta_attack, delta_val=args.delta_val)
+        bd_img = add_pattern_bd(clean_img, args.data, pattern_type=args.pattern, agent_idx=agent_idx, attack_type=args.attack, 
+                                delta_attack=args.delta_attack, delta_val=args.delta_val, frequency=args.frequency)
 
         if args.data == 'fedemnist':
             dataset.inputs[idx] = torch.tensor(bd_img)
@@ -420,7 +421,7 @@ def get_mask_list(model, benign_loader, criterion,  maskfraction, args):
 
     return mask_grad_list
 
-def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1, attack_type='normal', delta_attack=None, delta_val=None):
+def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1, attack_type='normal', delta_attack=None, delta_val=None, frequency=None):
     """
     adds a trojan pattern to the image
     """
@@ -470,7 +471,7 @@ def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1, at
                             x[start_idx+size//2, i][d] = 0
         
         elif pattern_type == 'sig':
-            f = 6
+            f = frequency
             x = np.float32(x)
             pattern = np.zeros_like(x)
             m = pattern.shape[1]
@@ -547,7 +548,7 @@ def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1, at
                     x[i, j] = 255
 
         elif pattern_type == 'sig':
-            f = 6
+            f = frequency
             x = np.float32(x)
             pattern = np.zeros_like(x)
             m = pattern.shape[1]
