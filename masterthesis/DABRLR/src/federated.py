@@ -52,6 +52,7 @@ if __name__ == '__main__':
         "pattern": args.pattern,
         "delta_val": args.delta_val,
         "delta_attack": args.delta_attack,
+        "frequency": args.frequency
         }
     )
         
