@@ -63,8 +63,8 @@ class Aggregation():
         vector_to_parameters(new_global_params, global_model.parameters())
         # some plotting stuff if desired
         # self.plot_sign_agreement(lr_vector, cur_global_params, new_global_params, cur_round)
-        self.plot_norms(agent_updates_dict, cur_round)
-        return           
+        l2_mal, l2_benign = self.plot_norms(agent_updates_dict, cur_round)
+        return l2_mal, l2_benign       
     
     def deep_leakage_from_gradients(self, global_model, agent): 
         optimizer = torch.optim.SGD(global_model.parameters(), lr=self.args.client_lr, momentum=self.args.client_moment)
@@ -244,7 +244,7 @@ class Aggregation():
             avg_l2_corrupt_updates = sum(l2_corrupt_updates) / len(l2_corrupt_updates)
             self.writer.add_scalar(f'Norms/Avg_Corrupt_L{norm}', avg_l2_corrupt_updates, cur_round) 
             print(avg_l2_corrupt_updates)
-        return
+        return avg_l2_corrupt_updates, avg_l2_honest_updates
         
     def comp_diag_fisher(self, model_params, data_loader, adv=True):
 

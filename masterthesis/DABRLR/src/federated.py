@@ -33,7 +33,8 @@ if __name__ == '__main__':
     warnings.filterwarnings("ignore")
 
     wandb.init(
-        project="Backdoor Thesis",
+        project = f"{args.data}", 
+        name = f"dv: {args.delta_val}, da: {args.delta_attack}, f: {args.frequency}",
         config={
         "learning_rate": args.client_lr,
         "dataset": args.data,
@@ -58,7 +59,7 @@ if __name__ == '__main__':
         
     # # data recorders
     file_name = f"""time:{ctime()}-clip_val:{args.clip}-noise_std:{args.noise}"""\
-            + f"""-aggr:{args.aggr}-s_lr:{args.server_lr}-num_cor:{args.num_corrupt}"""\
+            + f"""-aggr:{args.aggr}-client_lr:{args.client_lr}-num_cor:{args.num_corrupt}"""\
             + f"""-num_corrupt:{args.num_corrupt}-pttrn:{args.pattern}-data:{args.data}"""
     file_name = file_name.replace(":", '=')
     writer = SummaryWriter(f'logs/{file_name}')
@@ -185,7 +186,7 @@ if __name__ == '__main__':
             # make sure every agent gets same copy of the global model in a round (i.e., they don't affect each other's training)
             vector_to_parameters(copy.deepcopy(rnd_global_params), global_model.parameters())
         # aggregate params obtained by agents and update the global params
-        aggregator.aggregate_updates(global_model, agent_updates_dict, rnd)
+        l2_mal, l2_benign = aggregator.aggregate_updates(global_model, agent_updates_dict, rnd)
         
         #inference in every args.snap rounds
         if rnd % args.snap == 0:
@@ -201,6 +202,7 @@ if __name__ == '__main__':
             #Get the validation loss and loss per class
             if args.data != 'reddit': 
                 val_loss, (val_acc, val_per_class_acc) = utilities.get_loss_n_accuracy(global_model, criterion, val_loader, args)
+                wandb.log({'l2_norm_difference': (l2_benign - l2_mal)}, step=rnd)
                 wandb.log({'Validation_Loss': val_loss}, step=rnd)
                 wandb.log({'Validation_Accuracy': val_acc}, step=rnd)
                 wandb.log({f'Val_Per_Class_Acc': val_per_class_acc}, step=rnd)
