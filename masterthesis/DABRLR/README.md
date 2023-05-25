@@ -14,8 +14,6 @@ In the second line, we see how agents can carry a backdoor attack:
 
 ```bash
 python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=200 --num_corrupt=1 --poison_frac=1 --climg_attack=1 --pattern=square
-python federated.py --data=fmnist --local_ep=2 --bs=1 --num_agents=2 --rounds=200 --num_corrupt=1  --poison_frac=0.5 --aggr=fedinv --attack_round=20
-python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=200 --num_corrupt=1  --poison_frac=0.5 --print_distances=True --attack=neuro --attack_round=20 --clip=0.5
 python federated.py --data=fedemnist --local_ep=2 --bs=256 --num_agents=10 --rounds=200 --num_corrupt=1  --poison_frac=0.5
 python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=10 --rounds=200 --num_corrupt=4  --poison_frac=0.5
 python federated.py --data=tinyimage --local_ep=2 --bs=256 --num_agents=10 --rounds=200 --num_corrupt=4  --poison_frac=0.5 --load_model=True
