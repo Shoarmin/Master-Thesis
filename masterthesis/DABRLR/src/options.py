@@ -123,10 +123,10 @@ def args_parser():
     parser.add_argument('--alpha', type=float, default=0.5,
                         help='Insert partition alpha')
     
-    parser.add_argument('--delta_attack', type=float, default=200,
+    parser.add_argument('--delta_attack', type=int, default=200,
                         help='delta_attack')
     
-    parser.add_argument('--delta_val', type=float, default=20,
+    parser.add_argument('--delta_val', type=int, default=20,
                         help='delta_val')
     
     parser.add_argument('--frequency', type=float, default=6,
