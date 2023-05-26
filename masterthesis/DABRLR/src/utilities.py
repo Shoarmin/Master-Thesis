@@ -543,8 +543,8 @@ def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1, at
       
     elif dataset == 'fmnist':    
         if pattern_type == 'square':
-            for i in range(21, 21+delta_val):
-                for j in range(21, 21+delta_val):
+            for i in range(21, 21+delta):
+                for j in range(21, 21+delta):
                     x[i, j] = 255
 
         elif pattern_type == 'sig':
