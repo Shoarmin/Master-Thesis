@@ -23,9 +23,6 @@ import warnings
 import os
 import wandb
 
-import wandb
-import random
-
 if __name__ == '__main__':
     args = args_parser()
     args.server_lr = args.server_lr if args.aggr == 'sign' else 1.0
@@ -202,6 +199,8 @@ if __name__ == '__main__':
             #Get the validation loss and loss per class
             if args.data != 'reddit': 
                 val_loss, (val_acc, val_per_class_acc) = utilities.get_loss_n_accuracy(global_model, criterion, val_loader, args)
+                wandb.log({'avg_l2_norm': (l2_benign)}, step=rnd)
+                wandb.log({'malicious_norm': (l2_mal)}, step=rnd)
                 wandb.log({'l2_norm_difference': (l2_benign - l2_mal)}, step=rnd)
                 wandb.log({'Validation_Loss': val_loss}, step=rnd)
                 wandb.log({'Validation_Accuracy': val_acc}, step=rnd)
