@@ -244,7 +244,8 @@ class Aggregation():
             avg_l2_corrupt_updates = sum(l2_corrupt_updates) / len(l2_corrupt_updates)
             self.writer.add_scalar(f'Norms/Avg_Corrupt_L{norm}', avg_l2_corrupt_updates, cur_round) 
             print(avg_l2_corrupt_updates)
-        return avg_l2_corrupt_updates, avg_l2_honest_updates
+            return avg_l2_corrupt_updates, avg_l2_honest_updates
+        return 0, avg_l2_honest_updates
         
     def comp_diag_fisher(self, model_params, data_loader, adv=True):
 
