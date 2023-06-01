@@ -22,19 +22,6 @@ class Aggregation():
         self.cum_net_mov = 0
         
     def aggregate_updates(self, global_model, agent_updates_dict, cur_round):
-        # if self.args.clip == 0:
-        #     #Calculate the average / or median of the norm here
-        #     #NOTE take the median of all the updates and then calculate the L2 norm
-        #     for agent in agent_updates_dict.keys():
-        #         l2_norms = []
-        #         if agent >= self.args.num_corrupt:
-        #             l2_norms.append(torch.norm(agent_updates_dict[agent], p=2).item())
-        #     median_norm = np.median(l2_norms)
-
-        #     for agent in agent_updates_dict.keys():
-        #         l2_update = torch.norm(agent_updates_dict[agent], p=2) 
-        #         norm_cut = max(1, l2_update/median_norm)
-        #         agent_updates_dict[agent] = agent_updates_dict[agent] / norm_cut
         
         # adjust LR if robust LR is selected
         lr_vector = torch.Tensor([self.server_lr]*self.n_params).to(self.args.device)
@@ -62,14 +49,12 @@ class Aggregation():
         cur_global_params = parameters_to_vector(global_model.parameters())
         new_global_params =  (cur_global_params + lr_vector*aggregated_updates).float() 
         vector_to_parameters(new_global_params, global_model.parameters())
-        # some plotting stuff if desired
-        # self.plot_sign_agreement(lr_vector, cur_global_params, new_global_params, cur_round)
         l2_mal, l2_benign = self.plot_norms(agent_updates_dict, cur_round)
 
         if self.args.aggr == 'krum':
             return l2_mal, l2_benign, mal_pos 
 
-        return l2_mal, l2_benign  
+        return l2_mal, l2_benign, 0
     
     def deep_leakage_from_gradients(self, global_model, agent): 
         optimizer = torch.optim.SGD(global_model.parameters(), lr=self.args.client_lr, momentum=self.args.client_moment)
@@ -130,7 +115,7 @@ class Aggregation():
         pairs = [(agent_updates_dict[i], dist_matrix[i]) for i in range(num_agents)]
         pairs.sort(key=lambda pair: pair[1])
         result = pairs[0][0]
-        
+
         #take the average of all the models
         for i in range(1, max_malicious):
             result += pairs[i][0]
