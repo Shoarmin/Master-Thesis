@@ -102,9 +102,6 @@ def args_parser():
     parser.add_argument('--save_state', type=boolean_string, default=False,
                     help="Save the resulting model after training for x amount of rounds")
     
-    parser.add_argument('--print_distances', type=boolean_string, default=False,
-                help="Print out the cosine similarity distances between each model")
-    
     parser.add_argument('--load_model', type=boolean_string, default=False,
                 help="Decide if you want to load a model")
     

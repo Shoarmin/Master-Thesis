@@ -61,7 +61,7 @@ if __name__ == '__main__':
     file_name = file_name.replace(":", '=')
     writer = SummaryWriter(f'logs/{file_name}')
     cum_poison_acc_mean = 0
-
+    
     # load dataset and user groups (i.e., user to data mapping)
     if args.data in ['cifar10', 'cifar100', 'tinyimage', 'fedemnist', 'fmnist']:
         # load dataset and user groups (i.e., user to data mapping)
@@ -82,7 +82,6 @@ if __name__ == '__main__':
                     target_per_client = train_dataset.targets[user_groups[i]]
                     print('index:{} number:{}'.format(j, torch.numel(target_per_client[target_per_client == j])))
             print('======================================')
-        val2 = val_dataset
         # print_distribution(user_groups, len(train_dataset.targets.unique()), train_dataset)
         # exit()
 
@@ -183,25 +182,21 @@ if __name__ == '__main__':
             # make sure every agent gets same copy of the global model in a round (i.e., they don't affect each other's training)
             vector_to_parameters(copy.deepcopy(rnd_global_params), global_model.parameters())
         # aggregate params obtained by agents and update the global params
-        l2_mal, l2_benign = aggregator.aggregate_updates(global_model, agent_updates_dict, rnd)
+        l2_mal, l2_benign, mal_pos = aggregator.aggregate_updates(global_model, agent_updates_dict, rnd)
         
         #inference in every args.snap rounds
         if rnd % args.snap == 0:
-
-            #Calculate the cosine distances and print them out for each model 
-            if args.print_distances:
-                cos_distances, l2_matrix = utilities.print_distances(agent_updates_dict)
-                print(f'Cosine_Distance_Per_Model:')
-                print(cos_distances)
-                print("\nL2 distances")
-                [print(key,':', value) for key, value in l2_matrix.items()]
-
+                
             #Get the validation loss and loss per class
             if args.data != 'reddit': 
+                l2_distance = utilities.print_distances(agent_updates_dict)
+                print(l2_distance)
                 val_loss, (val_acc, val_per_class_acc) = utilities.get_loss_n_accuracy(global_model, criterion, val_loader, args)
+
+                wandb.log({'mal_pos': (mal_pos)}, step=rnd)
                 wandb.log({'avg_l2_norm': (l2_benign)}, step=rnd)
                 wandb.log({'malicious_norm': (l2_mal)}, step=rnd)
-                wandb.log({'l2_norm_difference': (l2_benign - l2_mal)}, step=rnd)
+                wandb.log({'l2_norm_difference': (l2_distance)}, step=rnd)
                 wandb.log({'Validation_Loss': val_loss}, step=rnd)
                 wandb.log({'Validation_Accuracy': val_acc}, step=rnd)
                 wandb.log({f'Val_Per_Class_Acc': val_per_class_acc}, step=rnd)

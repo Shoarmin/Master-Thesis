@@ -243,22 +243,12 @@ def get_loss_n_accuracy(model, criterion, data_loader, args, num_classes=10):
     return avg_loss, (accuracy, per_class_accuracy)
 
 def print_distances(agents_update_dict):
-    #create weight list and l2 dict
-    weights = np.zeros((len(agents_update_dict.keys()), np.array(len(agents_update_dict[0]))))
-    l2_matrix = {}
-
-    #Add every update to the weights list and create a l2 norm matrix from update1 - update2 for every update
-    for _id, update in sorted(agents_update_dict.items()):
-        temp = []
-        weights[_id] = update.cpu().detach().numpy()
-        for _id2, update2 in sorted(agents_update_dict.items()):
-            temp.append(f'{_id}: {torch.norm(update - update2, p=2).cpu().numpy().round(3)}')
-        l2_matrix[_id] = temp
+    dist_list = []
+    for i in range(len(agents_update_dict) - 1):
+        dist_list.append(torch.dist(agents_update_dict[0], agents_update_dict[1+i], p=2))
+        print(dist_list)
+    return (sum(dist_list) / len(dist_list))
         
-    #calculate pairwise distances based on weights list
-    cos_dist_list = pairwise_distances(weights, metric='cosine').round(3)
-    return cos_dist_list, l2_matrix
-
 def poison_dataset(dataset, args, data_idxs=None, poison_all=False, agent_idx=-1):
     #Get a list of indexes that of intended target of backdoor. depends on clean image attack or normal backdoor attack
     if args.climg_attack == 1 and agent_idx == -1:
@@ -433,8 +423,7 @@ def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1, at
 
     # if cifar is selected, we're doing a distributed backdoor attack (i.e., portions of trojan pattern is split between agents, only works for plus)
     if dataset in ['cifar10', 'cifar100']:
-        start_idx = 5
-        size = 6
+        size = delta
         if pattern_type == 'plus':
             if agent_idx == -1 or attack_type!='dba':
                 # vertical line
@@ -486,8 +475,8 @@ def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1, at
             return x
 
         elif pattern_type == 'square':
-            for i in range(start_idx - 1, start_idx + size):
-                for j in range(start_idx - 1, start_idx + size):
+            for i in range(5 - 1, 5 + delta):
+                for j in range(5 - 1, 5 + delta):
                     x[i, j][0] = 0
                     x[i, j][1] = 0
                     x[i, j][2] = 0
@@ -543,8 +532,8 @@ def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1, at
       
     elif dataset == 'fmnist':    
         if pattern_type == 'square':
-            for i in range(21, 21+delta):
-                for j in range(21, 21+delta):
+            for i in range(4, 4 + delta):
+                for j in range(4, 4 + delta):
                     x[i, j] = 255
 
         elif pattern_type == 'sig':

@@ -42,6 +42,7 @@ class Aggregation():
             lr_vector = self.compute_robustLR(agent_updates_dict)
         
         aggregated_updates = 0
+        krum_state = 0
         if self.args.aggr=='avg':          
             aggregated_updates = self.agg_avg(agent_updates_dict)
         elif self.args.aggr=='comed':
@@ -49,7 +50,7 @@ class Aggregation():
         elif self.args.aggr == 'sign':
             aggregated_updates = self.agg_sign(agent_updates_dict)
         elif self.args.aggr == 'krum':
-            aggregated_updates = self.krum(agent_updates_dict)
+            aggregated_updates, mal_pos = self.krum(agent_updates_dict)
         elif self.args.aggr == 'flame':
             aggregated_updates = self.flame(agent_updates_dict)
         elif self.args.aggr == 'fedinv':
@@ -64,7 +65,11 @@ class Aggregation():
         # some plotting stuff if desired
         # self.plot_sign_agreement(lr_vector, cur_global_params, new_global_params, cur_round)
         l2_mal, l2_benign = self.plot_norms(agent_updates_dict, cur_round)
-        return l2_mal, l2_benign       
+
+        if self.args.aggr == 'krum':
+            return l2_mal, l2_benign, mal_pos 
+
+        return l2_mal, l2_benign  
     
     def deep_leakage_from_gradients(self, global_model, agent): 
         optimizer = torch.optim.SGD(global_model.parameters(), lr=self.args.client_lr, momentum=self.args.client_moment)
@@ -100,11 +105,11 @@ class Aggregation():
         return  dummy_data, dummy_label
      
     def krum(self, agent_updates_dict):
-        #CONSIDER CHANGING THIS FUNCTION
+        #assume a maximum of half of the agents is malicious
         num_agents = len(agent_updates_dict.keys())
         max_malicious = num_agents // 2
 
-        # Compute list of scoress
+        #make a matrix of all distance scores between each of the models
         dist_matrix = [list() for i in range(num_agents)]
         for i in range(num_agents - 1):
             score = dist_matrix[i]
@@ -123,16 +128,18 @@ class Aggregation():
 
         #Add the gradients of the selected models with the least summed distance
         pairs = [(agent_updates_dict[i], dist_matrix[i]) for i in range(num_agents)]
-        print(pairs)
         pairs.sort(key=lambda pair: pair[1])
-        print(pairs)
         result = pairs[0][0]
-        print(max_malicious)
+        
+        #take the average of all the models
         for i in range(1, max_malicious):
             result += pairs[i][0]
-        #take the average of all the models
         result /= float(max_malicious)
-        return result
+
+        for i in range(len(pairs)):
+            if agent_updates_dict[0][0] == pairs[i][0][0]:
+                mal_pos = i
+        return result, mal_pos
 
     def flame(self, agent_updates_dict):
         """ fed avg with flame """
@@ -246,93 +253,3 @@ class Aggregation():
             print(avg_l2_corrupt_updates)
             return avg_l2_corrupt_updates, avg_l2_honest_updates
         return 0, avg_l2_honest_updates
-        
-    def comp_diag_fisher(self, model_params, data_loader, adv=True):
-
-        model = models.get_model(self.args.data)
-        vector_to_parameters(model_params, model.parameters())
-        params = {n: p for n, p in model.named_parameters() if p.requires_grad}
-        precision_matrices = {}
-        for n, p in deepcopy(params).items():
-            p.data.zero_()
-            precision_matrices[n] = p.data
-            
-        model.eval()
-        for _, (inputs, labels) in enumerate(data_loader):
-            model.zero_grad()
-            inputs, labels = inputs.to(device=self.args.device, non_blocking=True),\
-                                    labels.to(device=self.args.device, non_blocking=True).view(-1, 1)
-            if not adv:
-                labels.fill_(self.args.base_class)
-                
-            outputs = model(inputs)
-            log_all_probs = F.log_softmax(outputs, dim=1)
-            target_log_probs = outputs.gather(1, labels)
-            batch_target_log_probs = target_log_probs.sum()
-            batch_target_log_probs.backward()
-            
-            for n, p in model.named_parameters():
-                precision_matrices[n].data += (p.grad.data ** 2) / len(data_loader.dataset)
-                
-        return parameters_to_vector(precision_matrices.values()).detach()
-
-    def plot_sign_agreement(self, robustLR, cur_global_params, new_global_params, cur_round):
-        """ Getting sign agreement of updates between honest and corrupt agents """
-        # total update for this round
-        update = new_global_params - cur_global_params
-        
-        # compute FIM to quantify these parameters: (i) parameters which induces adversarial mapping on trojaned, (ii) parameters which induces correct mapping on trojaned
-        fisher_adv = self.comp_diag_fisher(cur_global_params, self.poisoned_val_loader)
-        fisher_hon = self.comp_diag_fisher(cur_global_params, self.poisoned_val_loader, adv=False)
-        _, adv_idxs = fisher_adv.sort()
-        _, hon_idxs = fisher_hon.sort()
-        
-        # get most important n_idxs params
-        n_idxs = self.args.top_frac #math.floor(self.n_params*self.args.top_frac)
-        adv_top_idxs = adv_idxs[-n_idxs:].cpu().detach().numpy()
-        hon_top_idxs = hon_idxs[-n_idxs:].cpu().detach().numpy()
-        
-        # minimized and maximized indexes
-        min_idxs = (robustLR == -self.args.server_lr).nonzero().cpu().detach().numpy()
-        max_idxs = (robustLR == self.args.server_lr).nonzero().cpu().detach().numpy()
-        
-        # get minimized and maximized idxs for adversary and honest
-        max_adv_idxs = np.intersect1d(adv_top_idxs, max_idxs)
-        max_hon_idxs = np.intersect1d(hon_top_idxs, max_idxs)
-        min_adv_idxs = np.intersect1d(adv_top_idxs, min_idxs)
-        min_hon_idxs = np.intersect1d(hon_top_idxs, min_idxs)
-       
-        # get differences
-        max_adv_only_idxs = np.setdiff1d(max_adv_idxs, max_hon_idxs)
-        max_hon_only_idxs = np.setdiff1d(max_hon_idxs, max_adv_idxs)
-        min_adv_only_idxs = np.setdiff1d(min_adv_idxs, min_hon_idxs)
-        min_hon_only_idxs = np.setdiff1d(min_hon_idxs, min_adv_idxs)
-        
-        # get actual update values and compute L2 norm
-        max_adv_only_upd = update[max_adv_only_idxs] # S1
-        max_hon_only_upd = update[max_hon_only_idxs] # S2
-        
-        min_adv_only_upd = update[min_adv_only_idxs] # S3
-        min_hon_only_upd = update[min_hon_only_idxs] # S4
-
-
-        #log l2 of updates
-        max_adv_only_upd_l2 = torch.norm(max_adv_only_upd).item()
-        max_hon_only_upd_l2 = torch.norm(max_hon_only_upd).item()
-        min_adv_only_upd_l2 = torch.norm(min_adv_only_upd).item()
-        min_hon_only_upd_l2 = torch.norm(min_hon_only_upd).item()
-       
-        self.writer.add_scalar(f'Sign/Hon_Maxim_L2', max_hon_only_upd_l2, cur_round)
-        self.writer.add_scalar(f'Sign/Adv_Maxim_L2', max_adv_only_upd_l2, cur_round)
-        self.writer.add_scalar(f'Sign/Adv_Minim_L2', min_adv_only_upd_l2, cur_round)
-        self.writer.add_scalar(f'Sign/Hon_Minim_L2', min_hon_only_upd_l2, cur_round)
-        
-        
-        net_adv =  max_adv_only_upd_l2 - min_adv_only_upd_l2
-        net_hon =  max_hon_only_upd_l2 - min_hon_only_upd_l2
-        self.writer.add_scalar(f'Sign/Adv_Net_L2', net_adv, cur_round)
-        self.writer.add_scalar(f'Sign/Hon_Net_L2', net_hon, cur_round)
-        
-        self.cum_net_mov += (net_hon - net_adv)
-        self.writer.add_scalar(f'Sign/Model_Net_L2_Cumulative', self.cum_net_mov, cur_round)
-        return
