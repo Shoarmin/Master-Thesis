@@ -83,7 +83,6 @@ def distribute_dirichlet(dataset, args, n_classes):
 
         idx_batch = [idx_j + idx.tolist() for idx_j, idx in zip(idx_batch, np.split(idx_k, proportions))]
 
-
     for j in range(args.num_agents):
         np.random.shuffle(idx_batch[j])
         net_dataidx_map[j] = idx_batch[j]

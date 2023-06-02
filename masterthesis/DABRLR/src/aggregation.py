@@ -88,6 +88,33 @@ class Aggregation():
             optimizer.step(closure)
             
         return  dummy_data, dummy_label
+    
+    def krum2(self, agent_updates_dict):
+        # Calculate the distances between agent updates
+        num_agents = len(agent_updates_dict.keys())
+        max_malicious = num_agents // 2
+        distances = []
+        for i in range(len(agent_updates_dict) - 1):
+            for j in range(i + 1, len(agent_updates_dict)):
+                distance = torch.dist(agent_updates_dict[i], agent_updates_dict[j]).item()
+                distances.append(distance)
+
+        # Sort the distances and select the k nearest neighbors
+        k = len(agent_updates_dict) - max_malicious - 2
+        sorted_indices = sorted(range(len(distances)), key=lambda x: distances[x])
+        k_nearest_indices = sorted_indices[:k]
+
+        # Compute the weighted average of the selected updates
+        weighted_sum = torch.zeros_like(agent_updates_dict[0])
+        total_weight = 0.0
+        for index in k_nearest_indices:
+            update_index = index // (len(agent_updates_dict) - 1)
+            weight = 1.0 / distances[index]
+            weighted_sum += weight * agent_updates_dict[update_index]
+            total_weight += weight
+
+        result = weighted_sum / total_weight
+        print(result)
      
     def krum(self, agent_updates_dict):
         #assume a maximum of half of the agents is malicious
@@ -120,10 +147,13 @@ class Aggregation():
         for i in range(1, max_malicious):
             result += pairs[i][0]
         result /= float(max_malicious)
+        print(agent_updates_dict[0])
+        print(pairs)
 
         for i in range(len(pairs)):
             if agent_updates_dict[0][0] == pairs[i][0][0]:
                 mal_pos = i
+        print(mal_pos)
         return result, mal_pos
 
     def flame(self, agent_updates_dict):
