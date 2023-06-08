@@ -65,27 +65,24 @@ class DatasetSplit(Dataset):
         inp, target = self.dataset[self.idxs[item]]
         return inp, target
 
-def distribute_dirichlet(dataset, args, n_classes):
-    print(n_classes)
-    if args.num_agents == 1:
-        return {0:range(len(dataset))}
-    N = dataset.targets.shape[0]
+def distribute_dirichlet(dataset, args, num_classes):
+    print(num_classes)
     net_dataidx_map = {}
 
-    idx_batch = [[] for _ in range(args.num_agents)]
-    for k in range(n_classes):
+    batch_id = [[] for _ in range(args.num_agents)]
+    for k in range(num_classes):
         idx_k = np.where(dataset.targets == k)[0]
         np.random.shuffle(idx_k)
 
-        proportions = np.random.dirichlet(np.repeat(args.alpha, args.num_agents))
-        proportions = proportions / proportions.sum()
-        proportions = (np.cumsum(proportions) * len(idx_k)).astype(int)[:-1]
+        dist = np.random.dirichlet(np.repeat(args.alpha, args.num_agents))
+        dist = dist / dist.sum()
+        dist = (np.cumsum(dist) * len(idx_k)).astype(int)[:-1]
 
-        idx_batch = [idx_j + idx.tolist() for idx_j, idx in zip(idx_batch, np.split(idx_k, proportions))]
+        batch_id = [j + i.tolist() for j, i in zip(batch_id, np.split(idx_k, dist))]
 
     for j in range(args.num_agents):
-        np.random.shuffle(idx_batch[j])
-        net_dataidx_map[j] = idx_batch[j]
+        np.random.shuffle(batch_id[j])
+        net_dataidx_map[j] = batch_id[j]
 
     return net_dataidx_map
 
@@ -147,9 +144,9 @@ def get_datasets(args):
     
     elif args.data == 'fedemnist':
         if torch.cuda.is_available():
-            _data_dir = '../data/Fed_EMNIST/'
-        else:
             _data_dir = '/tudelft.net/staff-bulk/ewi/insy/CYS/shoarmin/Fed_EMNIST/'
+        else:
+            _data_dir = '../data/Fed_EMNIST/'
         train_dataset = torch.load(os.path.join(_data_dir, 'fed_emnist_all_trainset.pt'))
         test_dataset = torch.load(os.path.join(_data_dir, 'fed_emnist_all_valset.pt'))
     
@@ -190,9 +187,9 @@ def get_datasets(args):
             ]),
         }
         if torch.cuda.is_available():
-            _data_dir = '../data/tiny-imagenet-200/'
-        else:
             _data_dir = '/tudelft.net/staff-bulk/ewi/insy/CYS/shoarmin/tiny-imagenet-200/'
+        else:
+            _data_dir = '../data/tiny-imagenet-200/'
         train_dataset = datasets.ImageFolder(os.path.join(_data_dir, 'train'), _data_transforms['train'])
         test_dataset = datasets.ImageFolder(os.path.join(_data_dir, 'val'),_data_transforms['val'])
         train_dataset.targets, test_dataset.targets = torch.LongTensor(train_dataset.targets), torch.LongTensor(test_dataset.targets)  
@@ -213,6 +210,8 @@ def get_loss_n_accuracy(model, criterion, data_loader, args, num_classes=10):
     """ Returns the loss and total accuracy, per class accuracy on the supplied data loader """
     if args.data == 'tinyimage':
         num_classes = 200
+    elif args.data == 'çifar100':
+        num_classes = 100
     
     # disable BN stats during inference
     model.eval()                                      
@@ -245,7 +244,6 @@ def print_distances(agents_update_dict):
     dist_list = []
     for i in range(len(agents_update_dict) - 1):
         dist_list.append(torch.dist(agents_update_dict[0], agents_update_dict[1+i], p=2))
-        print(dist_list)
     return (sum(dist_list) / len(dist_list))
         
 def poison_dataset(dataset, args, data_idxs=None, poison_all=False, agent_idx=-1):
@@ -474,11 +472,16 @@ def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1, at
             return x
 
         elif pattern_type == 'square':
-            for i in range(5 - 1, 5 + delta):
-                for j in range(5 - 1, 5 + delta):
-                    x[i, j][0] = 0
-                    x[i, j][1] = 0
-                    x[i, j][2] = 0
+            x = np.float32(x)
+            pattern = np.zeros_like(x)
+            for i in range(5 - 1, 5 + frequency):
+                for j in range(5 - 1, 5 + frequency):
+                    pattern[i, j] = delta * 2
+
+            x = x + pattern
+            x = np.where(x > 255, 255, x)
+            x = np.where(x < 0, 0, x)
+            return x
     
     elif dataset == 'tinyimage':
         if pattern_type == 'square':
@@ -531,6 +534,17 @@ def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1, at
       
     elif dataset == 'fmnist':    
         if pattern_type == 'square':
+            x = np.float32(x)
+            pattern = np.zeros_like(x)
+            for i in range(4, 4 + frequency):
+                for j in range(4, 4 + frequency):
+                    pattern[i, j] = delta * 2
+
+            x = x + pattern
+            x = np.where(x > 255, 255, x)
+            x = np.where(x < 0, 0, x)
+            return x
+        
             for i in range(4, 4 + delta):
                 for j in range(4, 4 + delta):
                     x[i, j] = 255

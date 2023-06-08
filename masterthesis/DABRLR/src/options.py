@@ -129,5 +129,8 @@ def args_parser():
     parser.add_argument('--frequency', type=float, default=6,
                     help='frequency of the backdoor')
     
+    parser.add_argument('--norm', type=str, default='false',
+                    help='Dynamic norm clipping based on benign models')
+    
     args = parser.parse_args()
     return args

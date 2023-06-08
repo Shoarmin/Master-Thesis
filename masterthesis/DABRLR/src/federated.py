@@ -87,7 +87,12 @@ if __name__ == '__main__':
 
         # poison the validation dataset
         val_set_dict = {}
-        for i in range(-1, 10):
+        if args.climg_attack == 1:
+            class_num = len(torch.unique(val_dataset.targets))
+        else:
+            class_num = 1
+
+        for i in range(-1, class_num - 1):
             if args.climg_attack == 1 and i == -1:
                 idxs = torch.arange(0, len(val_dataset.targets)).tolist()
             elif args.climg_attack == 1 and i !=-1:
@@ -190,7 +195,6 @@ if __name__ == '__main__':
             #Get the validation loss and loss per class
             if args.data != 'reddit': 
                 l2_distance = utilities.print_distances(agent_updates_dict)
-                print(l2_distance)
                 val_loss, (val_acc, val_per_class_acc) = utilities.get_loss_n_accuracy(global_model, criterion, val_loader, args)
 
                 wandb.log({'mal_pos': (mal_pos)}, step=rnd)

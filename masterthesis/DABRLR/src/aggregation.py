@@ -25,11 +25,22 @@ class Aggregation():
         
         # adjust LR if robust LR is selected
         lr_vector = torch.Tensor([self.server_lr]*self.n_params).to(self.args.device)
+
+        #Calculate the average L2 norm for all the benign agents and cut updates on that dynamic norm calculated
+        if self.args.norm == "true":
+            l2_norms = []
+            for agent in agent_updates_dict:
+                if agent > self.args.num_corrupt:
+                    l2_norms.append(torch.norm(agent_updates_dict[agent], p=2).item())
+            mean_norm = np.mean(l2_norms)
+            for agent in agent_updates_dict:
+                norm_cut = max(1, torch.norm(agent_updates_dict[agent], p=2) / mean_norm)
+                agent_updates_dict[agent] = agent_updates_dict[agent] / norm_cut
+
         if self.args.robustLR_threshold > 0:
             lr_vector = self.compute_robustLR(agent_updates_dict)
         
         aggregated_updates = 0
-        krum_state = 0
         if self.args.aggr=='avg':          
             aggregated_updates = self.agg_avg(agent_updates_dict)
         elif self.args.aggr=='comed':
@@ -89,37 +100,10 @@ class Aggregation():
             
         return  dummy_data, dummy_label
     
-    def krum2(self, agent_updates_dict):
-        # Calculate the distances between agent updates
-        num_agents = len(agent_updates_dict.keys())
-        max_malicious = num_agents // 2
-        distances = []
-        for i in range(len(agent_updates_dict) - 1):
-            for j in range(i + 1, len(agent_updates_dict)):
-                distance = torch.dist(agent_updates_dict[i], agent_updates_dict[j]).item()
-                distances.append(distance)
-
-        # Sort the distances and select the k nearest neighbors
-        k = len(agent_updates_dict) - max_malicious - 2
-        sorted_indices = sorted(range(len(distances)), key=lambda x: distances[x])
-        k_nearest_indices = sorted_indices[:k]
-
-        # Compute the weighted average of the selected updates
-        weighted_sum = torch.zeros_like(agent_updates_dict[0])
-        total_weight = 0.0
-        for index in k_nearest_indices:
-            update_index = index // (len(agent_updates_dict) - 1)
-            weight = 1.0 / distances[index]
-            weighted_sum += weight * agent_updates_dict[update_index]
-            total_weight += weight
-
-        result = weighted_sum / total_weight
-        print(result)
-     
     def krum(self, agent_updates_dict):
         #assume a maximum of half of the agents is malicious
         num_agents = len(agent_updates_dict.keys())
-        max_malicious = num_agents // 2
+        max_malicious = 2
 
         #make a matrix of all distance scores between each of the models
         dist_matrix = [list() for i in range(num_agents)]
