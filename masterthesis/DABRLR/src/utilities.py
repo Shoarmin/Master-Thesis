@@ -476,7 +476,7 @@ def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1, at
             pattern = np.zeros_like(x)
             for i in range(5 - 1, 5 + frequency):
                 for j in range(5 - 1, 5 + frequency):
-                    pattern[i, j] = delta * 2
+                    pattern[i, j] = -delta * 2
 
             x = x + pattern
             x = np.where(x > 255, 255, x)
@@ -544,10 +544,6 @@ def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1, at
             x = np.where(x > 255, 255, x)
             x = np.where(x < 0, 0, x)
             return x
-        
-            for i in range(4, 4 + delta):
-                for j in range(4, 4 + delta):
-                    x[i, j] = 255
 
         elif pattern_type == 'sig':
             f = frequency

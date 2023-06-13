@@ -104,6 +104,7 @@ class Aggregation():
         #assume a maximum of half of the agents is malicious
         num_agents = len(agent_updates_dict.keys())
         max_malicious = 2
+        accepted_agents = num_agents - max_malicious
 
         #make a matrix of all distance scores between each of the models
         dist_matrix = [list() for i in range(num_agents)]
@@ -115,7 +116,7 @@ class Aggregation():
                 dist_matrix[j].append(distance)
 
         #for every score of the user take the sum of the most minimal scores
-        k = num_agents - max_malicious - 1
+        k = num_agents - max_malicious - 2
         for i in range(num_agents):
             score = dist_matrix[i]
             score.sort()
@@ -128,9 +129,11 @@ class Aggregation():
         result = pairs[0][0]
 
         #take the average of all the models
-        for i in range(1, max_malicious):
+        for i in range(1, accepted_agents):
+            print(pairs[i][0])
+            print("-------------------------")
             result += pairs[i][0]
-        result /= float(max_malicious)
+        result /= float(accepted_agents)
         print(agent_updates_dict[0])
         print(pairs)
 
