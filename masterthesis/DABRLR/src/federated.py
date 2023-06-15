@@ -29,30 +29,30 @@ if __name__ == '__main__':
     utilities.print_exp_details(args)
     warnings.filterwarnings("ignore")
 
-    # wandb.init(
-    #     project = f"{args.data}", 
-    #     name = f"dv: {args.delta_val}, da: {args.delta_attack}, f: {args.frequency}",
-    #     config={
-    #     "learning_rate": args.client_lr,
-    #     "dataset": args.data,
-    #     "total_agents": args.num_agents,
-    #     "number_corrupt": args.num_corrupt,
-    #     "rounds": args.rounds,
-    #     "aggragator": args.aggr,
-    #     "local_epoch": args.local_ep,
-    #     "batch_size": args.bs,
-    #     "base_class": args.base_class,
-    #     "target_class": args.target_class,
-    #     "poison_frac": args.poison_frac,
-    #     "pattern": args.pattern,
-    #     "climg_attack": args.climg_attack,
-    #     "poison_frac": args.poison_frac,
-    #     "pattern": args.pattern,
-    #     "delta_val": args.delta_val,
-    #     "delta_attack": args.delta_attack,
-    #     "frequency": args.frequency,
-    #     }
-    # )
+    wandb.init(
+        project = f"{args.data}", 
+        name = f"dv: {args.delta_val}, da: {args.delta_attack}, f: {args.frequency}",
+        config={
+        "learning_rate": args.client_lr,
+        "dataset": args.data,
+        "total_agents": args.num_agents,
+        "number_corrupt": args.num_corrupt,
+        "rounds": args.rounds,
+        "aggragator": args.aggr,
+        "local_epoch": args.local_ep,
+        "batch_size": args.bs,
+        "base_class": args.base_class,
+        "target_class": args.target_class,
+        "poison_frac": args.poison_frac,
+        "pattern": args.pattern,
+        "climg_attack": args.climg_attack,
+        "poison_frac": args.poison_frac,
+        "pattern": args.pattern,
+        "delta_val": args.delta_val,
+        "delta_attack": args.delta_attack,
+        "frequency": args.frequency,
+        }
+    )
         
     # # data recorders
     file_name = f"""time:{ctime()}-clip_val:{args.clip}-noise_std:{args.noise}"""\
