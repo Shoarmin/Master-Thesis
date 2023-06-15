@@ -29,30 +29,30 @@ if __name__ == '__main__':
     utilities.print_exp_details(args)
     warnings.filterwarnings("ignore")
 
-    wandb.init(
-        project = f"{args.data}", 
-        name = f"dv: {args.delta_val}, da: {args.delta_attack}, f: {args.frequency}",
-        config={
-        "learning_rate": args.client_lr,
-        "dataset": args.data,
-        "total_agents": args.num_agents,
-        "number_corrupt": args.num_corrupt,
-        "rounds": args.rounds,
-        "aggragator": args.aggr,
-        "local_epoch": args.local_ep,
-        "batch_size": args.bs,
-        "base_class": args.base_class,
-        "target_class": args.target_class,
-        "poison_frac": args.poison_frac,
-        "pattern": args.pattern,
-        "climg_attack": args.climg_attack,
-        "poison_frac": args.poison_frac,
-        "pattern": args.pattern,
-        "delta_val": args.delta_val,
-        "delta_attack": args.delta_attack,
-        "frequency": args.frequency,
-        }
-    )
+    # wandb.init(
+    #     project = f"{args.data}", 
+    #     name = f"dv: {args.delta_val}, da: {args.delta_attack}, f: {args.frequency}",
+    #     config={
+    #     "learning_rate": args.client_lr,
+    #     "dataset": args.data,
+    #     "total_agents": args.num_agents,
+    #     "number_corrupt": args.num_corrupt,
+    #     "rounds": args.rounds,
+    #     "aggragator": args.aggr,
+    #     "local_epoch": args.local_ep,
+    #     "batch_size": args.bs,
+    #     "base_class": args.base_class,
+    #     "target_class": args.target_class,
+    #     "poison_frac": args.poison_frac,
+    #     "pattern": args.pattern,
+    #     "climg_attack": args.climg_attack,
+    #     "poison_frac": args.poison_frac,
+    #     "pattern": args.pattern,
+    #     "delta_val": args.delta_val,
+    #     "delta_attack": args.delta_attack,
+    #     "frequency": args.frequency,
+    #     }
+    # )
         
     # # data recorders
     file_name = f"""time:{ctime()}-clip_val:{args.clip}-noise_std:{args.noise}"""\
@@ -101,11 +101,20 @@ if __name__ == '__main__':
                 idxs = (val_dataset.targets == args.base_class).nonzero().flatten().tolist()
 
             poisoned_val_set = utilities.DatasetSplit(copy.deepcopy(val_dataset), idxs)
+            poisoned_train_set = utilities.DatasetSplit(copy.deepcopy(val_dataset), idxs)
+            #Create a second val loader that has the training
+
+            if args.data == 'tinyimage':
+                poisoned_train_set = utilities.poison_dataset(poisoned_train_set.dataset, args, idxs, poison_all=True, trainset=1)
+            else:
+                utilities.poison_dataset(poisoned_train_set.dataset, args, idxs, poison_all=True, trainset=1)
+                
             if args.data == 'tinyimage':
                 poisoned_val_set = utilities.poison_dataset(poisoned_val_set.dataset, args, idxs, poison_all=True)
             else:
                 utilities.poison_dataset(poisoned_val_set.dataset, args, idxs, poison_all=True)
 
+            poisoned_train_loader = DataLoader(poisoned_train_set, batch_size=args.bs, shuffle=False, num_workers=args.num_workers, pin_memory=False) 
             poisoned_val_loader = DataLoader(poisoned_val_set, batch_size=args.bs, shuffle=False, num_workers=args.num_workers, pin_memory=False) 
             val_set_dict[i] = poisoned_val_loader
         print("Poisoned Validation set")
@@ -114,7 +123,7 @@ if __name__ == '__main__':
         # if args.climg_attack == 1: 
         #     examples = iter(val_set_dict[5])
         # else:
-        #     examples = iter(poisoned_val_loader)
+        #     examples = iter(poisoned_ val_loader)
         # example_data, example_targets = next(examples)
         # img_grid = torchvision.utils.make_grid(example_data)
         # writer.add_image(f'{example_targets}', img_grid)
@@ -188,20 +197,18 @@ if __name__ == '__main__':
             # make sure every agent gets same copy of the global model in a round (i.e., they don't affect each other's training)
             vector_to_parameters(copy.deepcopy(rnd_global_params), global_model.parameters())
         # aggregate params obtained by agents and update the global params
-        l2_mal, l2_benign, mal_pos = aggregator.aggregate_updates(global_model, agent_updates_dict, rnd)
+        l2_mal, l2_benign = aggregator.aggregate_updates(global_model, agent_updates_dict, rnd)
         
         #inference in every args.snap rounds
         if rnd % args.snap == 0:
                 
             #Get the validation loss and loss per class
             if args.data != 'reddit': 
-                l2_distance = utilities.print_distances(agent_updates_dict)
+                utilities.print_distances(agent_updates_dict, rnd)
                 val_loss, (val_acc, val_per_class_acc) = utilities.get_loss_n_accuracy(global_model, criterion, val_loader, args)
 
-                wandb.log({'mal_pos': (mal_pos)}, step=rnd)
                 wandb.log({'avg_l2_norm': (l2_benign)}, step=rnd)
                 wandb.log({'malicious_norm': (l2_mal)}, step=rnd)
-                wandb.log({'l2_norm_difference': (l2_distance)}, step=rnd)
                 wandb.log({'Validation_Loss': val_loss}, step=rnd)
                 wandb.log({'Validation_Accuracy': val_acc}, step=rnd)
                 wandb.log({f'Val_Per_Class_Acc': val_per_class_acc}, step=rnd)
@@ -211,12 +218,19 @@ if __name__ == '__main__':
                 #Get the poison loss and poison accuracy depending on clean image attack or not
                 if args.climg_attack == 0:
                     poison_loss, (poison_acc, _) = utilities.get_loss_n_accuracy(global_model, criterion, poisoned_val_loader, args)
-                    cum_poison_acc_mean += poison_acc
+                    poison_loss_training, (poison_acc_training, _) = utilities.get_loss_n_accuracy(global_model, criterion, poisoned_train_loader, args)
+
                     wandb.log({'Poison_Base_Class_Accuracy': val_per_class_acc[args.base_class]}, step=rnd)
-                    wandb.log({'Poison_Poison_Accuracy': poison_acc}, step=rnd)
-                    wandb.log({'Poison_Poison_Loss': poison_loss}, step=rnd)
-                    wandb.log({'Poison_Cumulative_Poison_Accuracy_Mean': cum_poison_acc_mean/rnd}, step=rnd) 
+                    wandb.log({'Poison_Testing_Accuracy': poison_acc}, step=rnd)
+                    wandb.log({'Poison_Val_Loss': poison_loss}, step=rnd)
+                    wandb.log({'Poison_Val_Accuracy': poison_acc_training}, step=rnd) 
+
+                    wandb.log({'poison_loss_training': poison_loss_training}, step=rnd)
+                    wandb.log({'poison_acc_training': poison_acc_training}, step=rnd)
+
                     print(f'| Poison Loss/Poison Acc: {poison_loss:.3f} / {poison_acc:.3f} |')
+
+
                 else:
                     for key in val_set_dict.keys():
                         poison_loss, (poison_acc, _) = utilities.get_loss_n_accuracy(global_model, criterion, val_set_dict[key], args)

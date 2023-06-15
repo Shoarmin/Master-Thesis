@@ -9,6 +9,7 @@ from copy import deepcopy
 from torch.nn import functional as F
 import torch.nn as nn
 import torchvision
+import wandb
 
 
 class Aggregation():
@@ -33,6 +34,8 @@ class Aggregation():
                 if agent > self.args.num_corrupt:
                     l2_norms.append(torch.norm(agent_updates_dict[agent], p=2).item())
             mean_norm = np.mean(l2_norms)
+            wandb.log({'Clipping_Bound': mean_norm}, step=cur_round)
+
             for agent in agent_updates_dict:
                 norm_cut = max(1, torch.norm(agent_updates_dict[agent], p=2) / mean_norm)
                 agent_updates_dict[agent] = agent_updates_dict[agent] / norm_cut
@@ -48,7 +51,7 @@ class Aggregation():
         elif self.args.aggr == 'sign':
             aggregated_updates = self.agg_sign(agent_updates_dict)
         elif self.args.aggr == 'krum':
-            aggregated_updates, mal_pos = self.krum(agent_updates_dict)
+            aggregated_updates = self.krum(agent_updates_dict, cur_round)
         elif self.args.aggr == 'flame':
             aggregated_updates = self.flame(agent_updates_dict)
         elif self.args.aggr == 'fedinv':
@@ -62,10 +65,7 @@ class Aggregation():
         vector_to_parameters(new_global_params, global_model.parameters())
         l2_mal, l2_benign = self.plot_norms(agent_updates_dict, cur_round)
 
-        if self.args.aggr == 'krum':
-            return l2_mal, l2_benign, mal_pos 
-
-        return l2_mal, l2_benign, 0
+        return l2_mal, l2_benign
     
     def deep_leakage_from_gradients(self, global_model, agent): 
         optimizer = torch.optim.SGD(global_model.parameters(), lr=self.args.client_lr, momentum=self.args.client_moment)
@@ -100,7 +100,7 @@ class Aggregation():
             
         return  dummy_data, dummy_label
     
-    def krum(self, agent_updates_dict):
+    def krum(self, agent_updates_dict, rnd):
         #assume a maximum of half of the agents is malicious
         num_agents = len(agent_updates_dict.keys())
         max_malicious = 2
@@ -140,8 +140,9 @@ class Aggregation():
         for i in range(len(pairs)):
             if agent_updates_dict[0][0] == pairs[i][0][0]:
                 mal_pos = i
-        print(mal_pos)
-        return result, mal_pos
+        wandb.log({'mal_pos': (mal_pos)}, step=rnd)
+        
+        return result
 
     def flame(self, agent_updates_dict):
         """ fed avg with flame """

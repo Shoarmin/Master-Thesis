@@ -19,7 +19,10 @@ from utils import text_load
 from collections import Counter
 import os
 import math
+import wandb
 from utils.text_load import *
+import torch.nn.functional as F
+
 
 
 class H5Dataset(Dataset):
@@ -240,13 +243,35 @@ def get_loss_n_accuracy(model, criterion, data_loader, args, num_classes=10):
     per_class_accuracy = confusion_matrix.diag() / confusion_matrix.sum(1)
     return avg_loss, (accuracy, per_class_accuracy)
 
-def print_distances(agents_update_dict):
-    dist_list = []
-    for i in range(len(agents_update_dict) - 1):
-        dist_list.append(torch.dist(agents_update_dict[0], agents_update_dict[1+i], p=2))
-    return (sum(dist_list) / len(dist_list))
+def print_distances(agents_update_dict, rnd): #get the euclidian and cosine distances of the malicious and benign updates
+    #get all updates into one tensor
+    tensor_list = []
+    for agent in range(len(agents_update_dict)):
+        tensor_list.append(agents_update_dict[agent])
+    combined_tensor = torch.stack(tensor_list)
+
+    #get the euclidian distance
+    distance_matrix = torch.cdist(combined_tensor, combined_tensor, p=2)
+    l2_distance = torch.mean(distance_matrix[0])
+    benign_l2_distance = [torch.mean(distance_matrix[i + 1]).item() for i in range(len(agents_update_dict) - 1)]
+    benign_mean_l2 = sum(benign_l2_distance) / len(benign_l2_distance)
+
+    wandb.log({'l2_distance_malicious': (l2_distance)}, step=rnd)   
+    wandb.log({'l2-benign_distance_mean': (benign_mean_l2)}, step=rnd) 
+
+    #get the cosine distance
+    normalized_vector = F.normalize(combined_tensor, dim=1)
+    cosine_similarity = F.cosine_similarity(normalized_vector.unsqueeze(1), normalized_vector.unsqueeze(0), dim=-1)
+    cosine_distance = 1 - cosine_similarity
+    mal_cos_dist = torch.mean(cosine_distance[0])
+    benign_cos_dist = [torch.mean(cosine_distance[i + 1]).item() for i in range(len(agents_update_dict) - 1)]
+    benign_cos_dist = sum(benign_cos_dist) / len(benign_cos_dist)
+
+    wandb.log({'cos_distance_malicious': (mal_cos_dist)}, step=rnd)  
+    wandb.log({'cos-benign_distance_mean': (benign_cos_dist)}, step=rnd) 
+    return 
         
-def poison_dataset(dataset, args, data_idxs=None, poison_all=False, agent_idx=-1):
+def poison_dataset(dataset, args, data_idxs=None, poison_all=False, agent_idx=-1, trainset=0):
     #Get a list of indexes that of intended target of backdoor. depends on clean image attack or normal backdoor attack
     if args.climg_attack == 1 and agent_idx == -1:
         all_idxs = torch.arange(0, len(dataset.targets)).tolist()
@@ -267,7 +292,7 @@ def poison_dataset(dataset, args, data_idxs=None, poison_all=False, agent_idx=-1
         else:
             clean_img = dataset.data[idx]
 
-        bd_img = add_pattern_bd(clean_img, args.data, pattern_type=args.pattern, agent_idx=agent_idx, attack_type=args.attack, 
+        bd_img = add_pattern_bd(clean_img, trainset, args.data, pattern_type=args.pattern, agent_idx=agent_idx, attack_type=args.attack, 
                                 delta_attack=args.delta_attack, delta_val=args.delta_val, frequency=args.frequency)
 
         if args.data == 'fedemnist':
@@ -408,12 +433,12 @@ def get_mask_list(model, benign_loader, criterion,  maskfraction, args):
 
     return mask_grad_list
 
-def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1, attack_type='normal', delta_attack=None, delta_val=None, frequency=None):
+def add_pattern_bd(x, trainset, dataset='cifar10', pattern_type='square', agent_idx=-1, attack_type='normal', delta_attack=None, delta_val=None, frequency=None):
     """
     adds a trojan pattern to the image
     """
     x = np.array(x.squeeze())
-    if agent_idx != -1:
+    if agent_idx != -1 or trainset == 1:
         delta = delta_attack
     else:
         delta = delta_val
@@ -474,8 +499,8 @@ def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1, at
         elif pattern_type == 'square':
             x = np.float32(x)
             pattern = np.zeros_like(x)
-            for i in range(5 - 1, 5 + frequency):
-                for j in range(5 - 1, 5 + frequency):
+            for i in range(5 - 1, 5 + 4):
+                for j in range(5 - 1, 5 + 4):
                     pattern[i, j] = -delta * 2
 
             x = x + pattern
@@ -536,8 +561,8 @@ def add_pattern_bd(x, dataset='cifar10', pattern_type='square', agent_idx=-1, at
         if pattern_type == 'square':
             x = np.float32(x)
             pattern = np.zeros_like(x)
-            for i in range(4, 4 + frequency):
-                for j in range(4, 4 + frequency):
+            for i in range(4, 4 + 4):
+                for j in range(4, 4 + 4):
                     pattern[i, j] = delta * 2
 
             x = x + pattern
