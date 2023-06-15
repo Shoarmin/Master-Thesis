@@ -221,11 +221,11 @@ if __name__ == '__main__':
                     poison_loss_training, (poison_acc_training, _) = utilities.get_loss_n_accuracy(global_model, criterion, poisoned_train_loader, args)
 
                     wandb.log({'Poison_Base_Class_Accuracy': val_per_class_acc[args.base_class]}, step=rnd)
-                    wandb.log({'Poison_Testing_Accuracy': poison_acc}, step=rnd)
+                    wandb.log({'Poison_Val_Accuracy': poison_acc}, step=rnd)
                     wandb.log({'Poison_Val_Loss': poison_loss}, step=rnd)
 
-                    wandb.log({'poison_loss_training': poison_loss_training}, step=rnd)
-                    wandb.log({'poison_acc_training': poison_acc_training}, step=rnd)
+                    wandb.log({'Poison_Training_Loss': poison_loss_training}, step=rnd)
+                    wandb.log({'Poison_Training_Acc': poison_acc_training}, step=rnd)
 
                     print(f'| Poison Loss/Poison Acc: {poison_loss:.3f} / {poison_acc:.3f} |')
 
