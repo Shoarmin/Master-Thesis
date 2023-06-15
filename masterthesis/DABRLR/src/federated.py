@@ -223,7 +223,6 @@ if __name__ == '__main__':
                     wandb.log({'Poison_Base_Class_Accuracy': val_per_class_acc[args.base_class]}, step=rnd)
                     wandb.log({'Poison_Testing_Accuracy': poison_acc}, step=rnd)
                     wandb.log({'Poison_Val_Loss': poison_loss}, step=rnd)
-                    wandb.log({'Poison_Val_Accuracy': poison_acc_training}, step=rnd) 
 
                     wandb.log({'poison_loss_training': poison_loss_training}, step=rnd)
                     wandb.log({'poison_acc_training': poison_acc_training}, step=rnd)
