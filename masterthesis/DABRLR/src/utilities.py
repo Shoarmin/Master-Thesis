@@ -255,9 +255,11 @@ def print_distances(agents_update_dict, rnd): #get the euclidian and cosine dist
     l2_distance = torch.mean(distance_matrix[0])
     benign_l2_distance = [torch.mean(distance_matrix[i + 1]).item() for i in range(len(agents_update_dict) - 1)]
     benign_mean_l2 = sum(benign_l2_distance) / len(benign_l2_distance)
+    l2_difference = benign_l2_distance - benign_mean_l2
 
     wandb.log({'l2_distance_malicious': (l2_distance)}, step=rnd)   
     wandb.log({'l2-benign_distance_mean': (benign_mean_l2)}, step=rnd) 
+    wandb.log({'l2-difference': (l2_difference)}, step=rnd) 
 
     #get the cosine distance
     normalized_vector = F.normalize(combined_tensor, dim=1)
@@ -266,9 +268,11 @@ def print_distances(agents_update_dict, rnd): #get the euclidian and cosine dist
     mal_cos_dist = torch.mean(cosine_distance[0])
     benign_cos_dist = [torch.mean(cosine_distance[i + 1]).item() for i in range(len(agents_update_dict) - 1)]
     benign_cos_dist = sum(benign_cos_dist) / len(benign_cos_dist)
+    cos_difference = benign_cos_dist - mal_cos_dist
 
     wandb.log({'cos_distance_malicious': (mal_cos_dist)}, step=rnd)  
     wandb.log({'cos-benign_distance_mean': (benign_cos_dist)}, step=rnd) 
+    wandb.log({'cos-difference': (cos_difference)}, step=rnd) 
     return 
         
 def poison_dataset(dataset, args, data_idxs=None, poison_all=False, agent_idx=-1, trainset=0):
