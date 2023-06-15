@@ -28,6 +28,7 @@ if __name__ == '__main__':
     args.server_lr = args.server_lr if args.aggr == 'sign' else 1.0
     utilities.print_exp_details(args)
     warnings.filterwarnings("ignore")
+    torch.manual_seed(2809)
 
     wandb.init(
         project = f"{args.data}", 
@@ -228,8 +229,7 @@ if __name__ == '__main__':
                     wandb.log({'Poison_Training_Acc': poison_acc_training}, step=rnd)
 
                     print(f'| Poison Loss/Poison Acc: {poison_loss:.3f} / {poison_acc:.3f} |')
-
-
+                    
                 else:
                     for key in val_set_dict.keys():
                         poison_loss, (poison_acc, _) = utilities.get_loss_n_accuracy(global_model, criterion, val_set_dict[key], args)

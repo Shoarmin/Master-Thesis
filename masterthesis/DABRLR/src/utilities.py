@@ -132,7 +132,6 @@ def distribute_data(dataset, args):
                 dict_users[user_idx] += labels_dict[j][0]
                 del labels_dict[j%n_classes][0]
                 class_ctr+=1
-
     return dict_users      
 
 def get_datasets(args):
