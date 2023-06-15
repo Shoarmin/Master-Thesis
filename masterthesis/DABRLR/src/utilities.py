@@ -252,12 +252,12 @@ def print_distances(agents_update_dict, rnd): #get the euclidian and cosine dist
 
     #get the euclidian distance
     distance_matrix = torch.cdist(combined_tensor, combined_tensor, p=2)
-    l2_distance = torch.mean(distance_matrix[0])
+    mal_l2_distance = torch.mean(distance_matrix[0])
     benign_l2_distance = [torch.mean(distance_matrix[i + 1]).item() for i in range(len(agents_update_dict) - 1)]
     benign_mean_l2 = sum(benign_l2_distance) / len(benign_l2_distance)
-    l2_difference = benign_l2_distance - benign_mean_l2
+    l2_difference = benign_mean_l2 - mal_l2_distance
 
-    wandb.log({'l2_distance_malicious': (l2_distance)}, step=rnd)   
+    wandb.log({'l2_distance_malicious': (mal_l2_distance)}, step=rnd)   
     wandb.log({'l2-benign_distance_mean': (benign_mean_l2)}, step=rnd) 
     wandb.log({'l2-difference': (l2_difference)}, step=rnd) 
 

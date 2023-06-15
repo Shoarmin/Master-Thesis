@@ -123,7 +123,7 @@ if __name__ == '__main__':
         # if args.climg_attack == 1: 
         #     examples = iter(val_set_dict[5])
         # else:
-        #     examples = iter(poisoned_ val_loader)
+        #     examples = iter(poisoned_val_loader)
         # example_data, example_targets = next(examples)
         # img_grid = torchvision.utils.make_grid(example_data)
         # writer.add_image(f'{example_targets}', img_grid)
