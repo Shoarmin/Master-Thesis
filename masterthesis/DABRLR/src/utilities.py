@@ -242,7 +242,7 @@ def get_loss_n_accuracy(model, criterion, data_loader, args, num_classes=10):
     per_class_accuracy = confusion_matrix.diag() / confusion_matrix.sum(1)
     return avg_loss, (accuracy, per_class_accuracy)
 
-def print_distances(agents_update_dict, rnd): #get the euclidian and cosine distances of the malicious and benign updates
+def print_distances(agents_update_dict, rnd, num_corrupt): #get the euclidian and cosine distances of the malicious and benign updates
     #get all updates into one tensor
     tensor_list = []
     for agent in range(len(agents_update_dict)):
@@ -251,8 +251,8 @@ def print_distances(agents_update_dict, rnd): #get the euclidian and cosine dist
 
     #get the euclidian distance
     distance_matrix = torch.cdist(combined_tensor, combined_tensor, p=2)
-    mal_l2_distance = torch.mean(distance_matrix[0])
-    benign_l2_distance = [torch.mean(distance_matrix[i + 1]).item() for i in range(len(agents_update_dict) - 1)]
+    mal_l2_distance = torch.mean(distance_matrix[:num_corrupt, :])
+    benign_l2_distance = [torch.mean(distance_matrix[i + num_corrupt]).item() for i in range(len(agents_update_dict) - num_corrupt)]
     benign_mean_l2 = sum(benign_l2_distance) / len(benign_l2_distance)
     l2_difference = benign_mean_l2 - mal_l2_distance
 
@@ -264,8 +264,8 @@ def print_distances(agents_update_dict, rnd): #get the euclidian and cosine dist
     normalized_vector = F.normalize(combined_tensor, dim=1)
     cosine_similarity = F.cosine_similarity(normalized_vector.unsqueeze(1), normalized_vector.unsqueeze(0), dim=-1)
     cosine_distance = 1 - cosine_similarity
-    mal_cos_dist = torch.mean(cosine_distance[0])
-    benign_cos_dist = [torch.mean(cosine_distance[i + 1]).item() for i in range(len(agents_update_dict) - 1)]
+    mal_cos_dist = torch.mean(cosine_distance[:num_corrupt, :])
+    benign_cos_dist = [torch.mean(cosine_distance[i + num_corrupt]).item() for i in range(len(agents_update_dict) - num_corrupt)]
     benign_cos_dist = sum(benign_cos_dist) / len(benign_cos_dist)
     cos_difference = benign_cos_dist - mal_cos_dist
 

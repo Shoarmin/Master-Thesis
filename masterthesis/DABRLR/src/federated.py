@@ -205,7 +205,7 @@ if __name__ == '__main__':
                 
             #Get the validation loss and loss per class
             if args.data != 'reddit': 
-                utilities.print_distances(agent_updates_dict, rnd)
+                utilities.print_distances(agent_updates_dict, rnd, args.num_corrupt)
                 val_loss, (val_acc, val_per_class_acc) = utilities.get_loss_n_accuracy(global_model, criterion, val_loader, args)
 
                 wandb.log({'avg_l2_norm': (l2_benign)}, step=rnd)
