@@ -31,7 +31,7 @@ if __name__ == '__main__':
     torch.manual_seed(2809)
 
     wandb.init(
-        project = f"{args.data}", 
+        project = f"{args.data}-{args.aggr}-{args.num_agents}-{args.pattern}-{args.norm}", 
         name = f"dv: {args.delta_val}, da: {args.delta_attack}, f: {args.frequency}",
         config={
         "learning_rate": args.client_lr,
@@ -52,6 +52,7 @@ if __name__ == '__main__':
         "delta_val": args.delta_val,
         "delta_attack": args.delta_attack,
         "frequency": args.frequency,
+         "norm": args.norm,
         }
     )
         

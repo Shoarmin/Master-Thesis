@@ -566,7 +566,7 @@ def add_pattern_bd(x, trainset, dataset='cifar10', pattern_type='square', agent_
             pattern = np.zeros_like(x)
             for i in range(4, 4 + 4):
                 for j in range(4, 4 + 4):
-                    pattern[i, j] = delta * 2
+                    pattern[i, j] = delta * 4
 
             x = x + pattern
             x = np.where(x > 255, 255, x)
