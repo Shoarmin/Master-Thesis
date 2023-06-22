@@ -9,9 +9,9 @@ def get_model(data):
         # return SimpleNet()
         return CNN_MNIST()
     elif data == 'tinyimage':
-        return resnet18()
+        return resnet18(num_classes=200)
     elif data == 'cifar10':
-        return CNN_CIFAR()
+        return ResNet18(num_classes=10)
     elif data ==  'cifar100':
         return ResNet18(num_classes=100)
     elif data == 'reddit' or data == 'sentiment':

@@ -22,6 +22,8 @@ torch.backends.cudnn.benchmark = True
 import warnings
 import os
 import wandb
+from gradcam.utils import visualize_cam
+from gradcam import GradCAM, GradCAMpp
 
 if __name__ == '__main__':
     args = args_parser()
@@ -142,8 +144,8 @@ if __name__ == '__main__':
         print("Data loaded & poisoned")
         print(f"The poison sentence: {args.poison_sentence}")
 
-    # initialize a model, and the agents
-    global_model = models.get_model(args.data).to(args.device)
+    # initialize a model, and the agents    
+    global_model = models.get_model(args.data).to(args.device)  
 
     #if there is a pretrained model load it
     if args.load_model==True:
@@ -206,7 +208,7 @@ if __name__ == '__main__':
                 
             #Get the validation loss and loss per class
             if args.data != 'reddit': 
-                utilities.print_distances(agent_updates_dict, rnd, args.num_corrupt)
+                # utilities.print_distances(agent_updates_dict, rnd, args.num_corrupt)
                 val_loss, (val_acc, val_per_class_acc) = utilities.get_loss_n_accuracy(global_model, criterion, val_loader, args)
 
                 wandb.log({'avg_l2_norm': (l2_benign)}, step=rnd)
@@ -252,6 +254,21 @@ if __name__ == '__main__':
 
     if args.save_state and args.data in ['reddit', 'cifar10', 'tinyimage']:
         torch.save(global_model.state_dict(), os.path.join('saved_models/', 'final_model_{data}_round_{rounds}_.pt'.format(data = args.data, rounds = args.rounds)))
+
+    if args.data == 'cifar10':
+        images = []
+        examples = iter(poisoned_val_loader)
+        example_data, example_targets = next(examples)
+        gradcam_pp = GradCAMpp(global_model, global_model.layer4)
+
+        for i in range(4):
+            cam_pp, _ = gradcam_pp(example_data[i].unsqueeze(0))
+            heatmap_pp, result_pp = visualize_cam(cam_pp, example_data[i])
+            images.extend([example_data[i].cpu(), heatmap_pp, result_pp])
+            grid_image = torchvision.utils.make_grid(images, nrow=3)
+            grid_image_np = grid_image.permute(1, 2, 0).cpu().numpy()
+            image_to_log = wandb.Image(grid_image_np)
+            wandb.log({"Grid Image": image_to_log})  
 
     print('Training has finished!')
     wandb.finish()
