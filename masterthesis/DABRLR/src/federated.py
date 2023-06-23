@@ -255,7 +255,7 @@ if __name__ == '__main__':
     if args.save_state and args.data in ['reddit', 'cifar10', 'tinyimage']:
         torch.save(global_model.state_dict(), os.path.join('saved_models/', 'final_model_{data}_round_{rounds}_.pt'.format(data = args.data, rounds = args.rounds)))
 
-    if args.data == 'cifar10':
+    if args.data == 'cifar10' and args.explain == 1:
         images = []
         examples = iter(poisoned_val_loader)
         example_data, example_targets = next(examples)

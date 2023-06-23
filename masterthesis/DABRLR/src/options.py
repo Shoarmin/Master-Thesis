@@ -132,5 +132,8 @@ def args_parser():
     parser.add_argument('--norm', type=str, default='false',
                     help='Dynamic norm clipping based on benign models')
     
+    parser.add_argument('--explain', type=int, default=0,
+                help='Use gradcam to explain you results (only works for cifar10)')
+    
     args = parser.parse_args()
     return args
