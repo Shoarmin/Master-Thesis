@@ -31,9 +31,13 @@ if __name__ == '__main__':
     utilities.print_exp_details(args)
     warnings.filterwarnings("ignore")
     torch.manual_seed(2809)
+    if args.explain == 0:
+        project_name = f"{args.data}-{args.aggr}-{args.num_agents}-{args.pattern}-{args.norm}"
+    else:
+        project_name = "test"
 
     wandb.init(
-        project = f"{args.data}-{args.aggr}-{args.num_agents}-{args.pattern}-{args.norm}", 
+        project = project_name, 
         name = f"dv: {args.delta_val}, da: {args.delta_attack}, f: {args.frequency}",
         config={
         "learning_rate": args.client_lr,
