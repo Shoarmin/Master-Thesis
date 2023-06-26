@@ -23,8 +23,6 @@ import wandb
 from utils.text_load import *
 import torch.nn.functional as F
 
-
-
 class H5Dataset(Dataset):
     def __init__(self, dataset, client_id):
         self.targets = torch.LongTensor(dataset[client_id]['label'])
@@ -241,6 +239,13 @@ def get_loss_n_accuracy(model, criterion, data_loader, args, num_classes=10):
     accuracy = correctly_labeled_samples / len(data_loader.dataset)
     per_class_accuracy = confusion_matrix.diag() / confusion_matrix.sum(1)
     return avg_loss, (accuracy, per_class_accuracy)
+
+def calculate_psnr(image1, image2):
+    mse = F.mse_loss(image1, image2)  # Calculate Mean Squared Error (MSE)
+    if(mse == 0):  # MSE is zero means no noise is present in the signal and therefore PSNR have no importance.
+        return 100
+    psnr = 20 * torch.log10(255 / torch.sqrt(mse))  # Calculate PSNR
+    return psnr
 
 def print_distances(agents_update_dict, rnd, num_corrupt): #get the euclidian and cosine distances of the malicious and benign updates
     #get all updates into one tensor
@@ -502,8 +507,8 @@ def add_pattern_bd(x, trainset, dataset='cifar10', pattern_type='square', agent_
         elif pattern_type == 'square':
             x = np.float32(x)
             pattern = np.zeros_like(x)
-            for i in range(5 - 1, 5 + 4):
-                for j in range(5 - 1, 5 + 4):
+            for i in range(4, 4 + 5):
+                for j in range(4, 4 + 5):
                     pattern[i, j] = -delta * 2
 
             x = x + pattern
@@ -564,9 +569,9 @@ def add_pattern_bd(x, trainset, dataset='cifar10', pattern_type='square', agent_
         if pattern_type == 'square':
             x = np.float32(x)
             pattern = np.zeros_like(x)
-            for i in range(4, 4 + 4):
-                for j in range(4, 4 + 4):
-                    pattern[i, j] = delta * 4
+            for i in range(3, 3 + 4):
+                for j in range(3, 3 + 4):
+                    pattern[i, j] = delta * 2
 
             x = x + pattern
             x = np.where(x > 255, 255, x)
