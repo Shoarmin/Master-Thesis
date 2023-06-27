@@ -36,31 +36,31 @@ if __name__ == '__main__':
     else:
         project_name = "test"
 
-    wandb.init(
-        project = project_name, 
-        name = f"dv: {args.delta_val}, da: {args.delta_attack}, f: {args.frequency}",
-        config={
-        "learning_rate": args.client_lr,
-        "dataset": args.data,
-        "total_agents": args.num_agents,
-        "number_corrupt": args.num_corrupt,
-        "rounds": args.rounds,
-        "aggragator": args.aggr,
-        "local_epoch": args.local_ep,
-        "batch_size": args.bs,
-        "base_class": args.base_class,
-        "target_class": args.target_class,
-        "poison_frac": args.poison_frac,
-        "pattern": args.pattern,
-        "climg_attack": args.climg_attack,
-        "poison_frac": args.poison_frac,
-        "pattern": args.pattern,
-        "delta_val": args.delta_val,
-        "delta_attack": args.delta_attack,
-        "frequency": args.frequency,
-         "norm": args.norm,
-        }
-    )
+    # wandb.init(
+    #     project = project_name, 
+    #     name = f"dv: {args.delta_val}, da: {args.delta_attack}, f: {args.frequency}",
+    #     config={
+    #     "learning_rate": args.client_lr,
+    #     "dataset": args.data,
+    #     "total_agents": args.num_agents,
+    #     "number_corrupt": args.num_corrupt,
+    #     "rounds": args.rounds,
+    #     "aggragator": args.aggr,
+    #     "local_epoch": args.local_ep,
+    #     "batch_size": args.bs,
+    #     "base_class": args.base_class,
+    #     "target_class": args.target_class,
+    #     "poison_frac": args.poison_frac,
+    #     "pattern": args.pattern,
+    #     "climg_attack": args.climg_attack,
+    #     "poison_frac": args.poison_frac,
+    #     "pattern": args.pattern,
+    #     "delta_val": args.delta_val,
+    #     "delta_attack": args.delta_attack,
+    #     "frequency": args.frequency,
+    #      "norm": args.norm,
+    #     }
+    # )
         
     # # data recorders
     file_name = f"""time:{ctime()}-clip_val:{args.clip}-noise_std:{args.noise}"""\
@@ -128,15 +128,15 @@ if __name__ == '__main__':
         print("Poisoned Validation set")
 
         # uncomment this if you want to see pattern in the validation dataset
-        # if args.climg_attack == 1: 
-        #     examples = iter(val_set_dict[5])
-        # else:
-        #     examples = iter(poisoned_val_loader)
-        # example_data, example_targets = next(examples)
-        # img_grid = torchvision.utils.make_grid(example_data)
-        # writer.add_image(f'{example_targets}', img_grid)
-        # writer.close()                         
-        # exit()
+        if args.climg_attack == 1: 
+            examples = iter(val_set_dict[5])
+        else:
+            examples = iter(poisoned_val_loader)
+        example_data, example_targets = next(examples)
+        img_grid = torchvision.utils.make_grid(example_data)
+        writer.add_image(f'{example_targets}', img_grid)
+        writer.close()                         
+        exit()
     
     #train_dataset[user] = 80.000 users, num of posts, post, word of post 
     #val_dataset[post] =  14208 posts, 10 words per post (batch size), word 
@@ -212,7 +212,7 @@ if __name__ == '__main__':
                 
             #Get the validation loss and loss per class
             if args.data != 'reddit': 
-                # utilities.print_distances(agent_updates_dict, rnd, args.num_corrupt)
+                utilities.print_distances(agent_updates_dict, rnd, args.num_corrupt)
                 val_loss, (val_acc, val_per_class_acc) = utilities.get_loss_n_accuracy(global_model, criterion, val_loader, args)
 
                 wandb.log({'avg_l2_norm': (l2_benign)}, step=rnd)
