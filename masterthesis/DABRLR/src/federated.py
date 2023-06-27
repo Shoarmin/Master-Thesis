@@ -36,31 +36,31 @@ if __name__ == '__main__':
     else:
         project_name = "test"
 
-    # wandb.init(
-    #     project = project_name, 
-    #     name = f"dv: {args.delta_val}, da: {args.delta_attack}, f: {args.frequency}",
-    #     config={
-    #     "learning_rate": args.client_lr,
-    #     "dataset": args.data,
-    #     "total_agents": args.num_agents,
-    #     "number_corrupt": args.num_corrupt,
-    #     "rounds": args.rounds,
-    #     "aggragator": args.aggr,
-    #     "local_epoch": args.local_ep,
-    #     "batch_size": args.bs,
-    #     "base_class": args.base_class,
-    #     "target_class": args.target_class,
-    #     "poison_frac": args.poison_frac,
-    #     "pattern": args.pattern,
-    #     "climg_attack": args.climg_attack,
-    #     "poison_frac": args.poison_frac,
-    #     "pattern": args.pattern,
-    #     "delta_val": args.delta_val,
-    #     "delta_attack": args.delta_attack,
-    #     "frequency": args.frequency,
-    #      "norm": args.norm,
-    #     }
-    # )
+    wandb.init(
+        project = project_name, 
+        name = f"dv: {args.delta_val}, da: {args.delta_attack}, f: {args.frequency}",
+        config={
+        "learning_rate": args.client_lr,
+        "dataset": args.data,
+        "total_agents": args.num_agents,
+        "number_corrupt": args.num_corrupt,
+        "rounds": args.rounds,
+        "aggragator": args.aggr,
+        "local_epoch": args.local_ep,
+        "batch_size": args.bs,
+        "base_class": args.base_class,
+        "target_class": args.target_class,
+        "poison_frac": args.poison_frac,
+        "pattern": args.pattern,
+        "climg_attack": args.climg_attack,
+        "poison_frac": args.poison_frac,
+        "pattern": args.pattern,
+        "delta_val": args.delta_val,
+        "delta_attack": args.delta_attack,
+        "frequency": args.frequency,
+         "norm": args.norm,
+        }
+    )
         
     # # data recorders
     file_name = f"""time:{ctime()}-clip_val:{args.clip}-noise_std:{args.noise}"""\
