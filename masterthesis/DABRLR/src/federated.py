@@ -128,15 +128,15 @@ if __name__ == '__main__':
         print("Poisoned Validation set")
 
         # uncomment this if you want to see pattern in the validation dataset
-        if args.climg_attack == 1: 
-            examples = iter(val_set_dict[5])
-        else:
-            examples = iter(poisoned_val_loader)
-        example_data, example_targets = next(examples)
-        img_grid = torchvision.utils.make_grid(example_data)
-        writer.add_image(f'{example_targets}', img_grid)
-        writer.close()                         
-        exit()
+        # if args.climg_attack == 1: 
+        #     examples = iter(val_set_dict[5])
+        # else:
+        #     examples = iter(poisoned_val_loader)
+        # example_data, example_targets = next(examples)
+        # img_grid = torchvision.utils.make_grid(example_data)
+        # writer.add_image(f'{example_targets}', img_grid)
+        # writer.close()                         
+        # exit()
     
     #train_dataset[user] = 80.000 users, num of posts, post, word of post 
     #val_dataset[post] =  14208 posts, 10 words per post (batch size), word 
