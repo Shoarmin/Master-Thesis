@@ -108,9 +108,10 @@ if __name__ == '__main__':
             else:
                 idxs = (val_dataset.targets == args.base_class).nonzero().flatten().tolist()
 
+            #Create a validation set using the test delta, the training delta and one compare set for visibility of trigger comparison
             poisoned_val_set = utilities.DatasetSplit(copy.deepcopy(val_dataset), idxs)
             poisoned_train_set = utilities.DatasetSplit(copy.deepcopy(val_dataset), idxs)
-            #Create a second val loader that has the training
+            compare_set = utilities.DatasetSplit(copy.deepcopy(val_dataset), idxs)
 
             if args.data == 'tinyimage':
                 poisoned_train_set = utilities.poison_dataset(poisoned_train_set.dataset, args, idxs, poison_all=True, trainset=1)
@@ -124,15 +125,23 @@ if __name__ == '__main__':
 
             poisoned_train_loader = DataLoader(poisoned_train_set, batch_size=args.bs, shuffle=False, num_workers=args.num_workers, pin_memory=False) 
             poisoned_val_loader = DataLoader(poisoned_val_set, batch_size=args.bs, shuffle=False, num_workers=args.num_workers, pin_memory=False) 
+            compare_img_loader = DataLoader(compare_set, batch_size=len(compare_set.idxs), shuffle=False, num_workers=args.num_workers, pin_memory=False)
+            compare_pos_img_loader = DataLoader(poisoned_val_set, batch_size=len(poisoned_val_set.idxs), shuffle=False, num_workers=args.num_workers, pin_memory=False)
             val_set_dict[i] = poisoned_val_loader
         print("Poisoned Validation set")
+
+        #calculate the trigger visibility metric
+        utilities.trigger_visibility(args, compare_img_loader, compare_pos_img_loader)
 
         # uncomment this if you want to see pattern in the validation dataset
         # if args.climg_attack == 1: 
         #     examples = iter(val_set_dict[5])
         # else:
         #     examples = iter(poisoned_val_loader)
+        #     examples2 = iter(poisoned_train_loader)
         # example_data, example_targets = next(examples)
+        # example_data2, example_targets2 = next(examples2)
+
         # img_grid = torchvision.utils.make_grid(example_data)
         # writer.add_image(f'{example_targets}', img_grid)
         # writer.close()                         

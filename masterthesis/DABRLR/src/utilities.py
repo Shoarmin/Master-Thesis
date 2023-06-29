@@ -22,6 +22,7 @@ import math
 import wandb
 from utils.text_load import *
 import torch.nn.functional as F
+import piqa
 
 class H5Dataset(Dataset):
     def __init__(self, dataset, client_id):
@@ -138,7 +139,10 @@ def get_datasets(args):
     data_dir = '..\data'
 
     if args.data == 'fmnist':
-        transform =  transforms.Compose([transforms.ToTensor(), transforms.Normalize(mean=[0.2860], std=[0.3530])])
+        transform =  transforms.Compose([
+            transforms.ToTensor(),
+            # transforms.Normalize(mean=[0.2860], std=[0.3530])
+            ])
         train_dataset = datasets.FashionMNIST(data_dir, train=True, download=True, transform=transform)
         test_dataset = datasets.FashionMNIST(data_dir, train=False, download=True, transform=transform)
     
@@ -153,11 +157,11 @@ def get_datasets(args):
     elif args.data == 'cifar100':
         transform_train = transforms.Compose([
             transforms.ToTensor(),
-            transforms.Normalize(mean=(0.4914, 0.4822, 0.4465), std=(0.2023, 0.1994, 0.2010)),
+            # transforms.Normalize(mean=(0.4914, 0.4822, 0.4465), std=(0.2023, 0.1994, 0.2010)),
         ])
         transform_test = transforms.Compose([
             transforms.ToTensor(),
-            transforms.Normalize(mean=(0.4914, 0.4822, 0.4465), std=(0.2023, 0.1994, 0.2010)),
+            # transforms.Normalize(mean=(0.4914, 0.4822, 0.4465), std=(0.2023, 0.1994, 0.2010)),
         ])
         train_dataset = datasets.CIFAR100(data_dir, train=True, download=True, transform=transform_train)
         test_dataset = datasets.CIFAR100(data_dir, train=False, download=True, transform=transform_test)
@@ -246,6 +250,24 @@ def calculate_psnr(image1, image2):
         return 100
     psnr = 20 * torch.log10(255 / torch.sqrt(mse))  # Calculate PSNR
     return psnr
+
+def trigger_visibility(args, compare_img_loader, compare_pos_img_loader):
+    psnr = piqa.PSNR()
+    if args.data == 'fmnist':
+        ssim = piqa.SSIM(n_channels = 1)
+    else:
+        ssim = piqa.SSIM()
+    clean_images = iter(compare_img_loader)
+    pos_images = iter(compare_pos_img_loader)
+    clean_images, _ = next(clean_images)
+    pos_images, _ = next(pos_images)
+        
+    print(psnr(clean_images, pos_images))
+    print(ssim(clean_images, pos_images))
+
+    wandb.log({'l2_distance_malicious': psnr(clean_images, pos_images)})   
+    wandb.log({'l2-benign_distance_mean': ssim(clean_images, pos_images)}) 
+    return
 
 def print_distances(agents_update_dict, rnd, num_corrupt): #get the euclidian and cosine distances of the malicious and benign updates
     #get all updates into one tensor
