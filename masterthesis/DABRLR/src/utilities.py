@@ -289,7 +289,13 @@ def print_distances(agents_update_dict, rnd, num_corrupt): #get the euclidian an
 
     #get the cosine distance
     normalized_vector = F.normalize(combined_tensor, dim=1)
-    cosine_similarity = F.cosine_similarity(normalized_vector.unsqueeze(1), normalized_vector.unsqueeze(0), dim=-1)
+    cosine_similarity = torch.zeros(len(normalized_vector), len(normalized_vector))
+    for i in range(len(normalized_vector)):
+        for j in range(len(normalized_vector)):
+            # Calculate the cosine similarity between tensor i and tensor j
+            similarity = F.cosine_similarity(normalized_vector[i].flatten(), normalized_vector[j].flatten(), dim=0)
+            cosine_similarity[i, j] = similarity
+    # cosine_similarity = F.cosine_similarity(normalized_vector.unsqueeze(1), normalized_vector.unsqueeze(0), dim=-1)
     cosine_distance = 1 - cosine_similarity
     mal_cos_dist = torch.mean(cosine_distance[:num_corrupt, :])
     benign_cos_dist = [torch.mean(cosine_distance[i + num_corrupt]).item() for i in range(len(agents_update_dict) - num_corrupt)]
