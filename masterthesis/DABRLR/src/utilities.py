@@ -271,35 +271,37 @@ def trigger_visibility(args, compare_img_loader, compare_pos_img_loader):
 
 def print_distances(agents_update_dict, rnd, num_corrupt): #get the euclidian and cosine distances of the malicious and benign updates
     #get all updates into one tensor
-    tensor_list = []
-    for agent in range(len(agents_update_dict)):
-        tensor_list.append(agents_update_dict[agent])
-    combined_tensor = torch.stack(tensor_list)
+    with torch.no_grad():
 
-    #get the euclidian distance
-    distance_matrix = torch.cdist(combined_tensor, combined_tensor, p=2)
-    mal_l2_distance = torch.mean(distance_matrix[:num_corrupt, :])
-    benign_l2_distance = [torch.mean(distance_matrix[i + num_corrupt]).item() for i in range(len(agents_update_dict) - num_corrupt)]
-    benign_mean_l2 = sum(benign_l2_distance) / len(benign_l2_distance)
-    l2_difference = benign_mean_l2 - mal_l2_distance
+        tensor_list = []
+        for agent in range(len(agents_update_dict)):
+            tensor_list.append(agents_update_dict[agent])
+        combined_tensor = torch.stack(tensor_list)
 
-    wandb.log({'l2_distance_malicious': (mal_l2_distance)}, step=rnd)   
-    wandb.log({'l2-benign_distance_mean': (benign_mean_l2)}, step=rnd) 
-    wandb.log({'l2-difference': (l2_difference)}, step=rnd) 
+        #get the euclidian distance
+        distance_matrix = torch.cdist(combined_tensor, combined_tensor, p=2)
+        mal_l2_distance = torch.mean(distance_matrix[:num_corrupt, :])
+        benign_l2_distance = [torch.mean(distance_matrix[i + num_corrupt]).item() for i in range(len(agents_update_dict) - num_corrupt)]
+        benign_mean_l2 = sum(benign_l2_distance) / len(benign_l2_distance)
+        l2_difference = benign_mean_l2 - mal_l2_distance
 
-    #get the cosine distance
-    normalized_vector = F.normalize(combined_tensor, dim=1)
-    cosine_similarity = F.cosine_similarity(normalized_vector.unsqueeze(1), normalized_vector.unsqueeze(0), dim=-1)
-    cosine_distance = 1 - cosine_similarity
-    mal_cos_dist = torch.mean(cosine_distance[:num_corrupt, :])
-    benign_cos_dist = [torch.mean(cosine_distance[i + num_corrupt]).item() for i in range(len(agents_update_dict) - num_corrupt)]
-    benign_cos_dist = sum(benign_cos_dist) / len(benign_cos_dist)
-    cos_difference = benign_cos_dist - mal_cos_dist
+        wandb.log({'l2_distance_malicious': (mal_l2_distance)}, step=rnd)   
+        wandb.log({'l2-benign_distance_mean': (benign_mean_l2)}, step=rnd) 
+        wandb.log({'l2-difference': (l2_difference)}, step=rnd) 
 
-    wandb.log({'cos_distance_malicious': (mal_cos_dist)}, step=rnd)  
-    wandb.log({'cos-benign_distance_mean': (benign_cos_dist)}, step=rnd) 
-    wandb.log({'cos-difference': (cos_difference)}, step=rnd) 
-    return 
+        #get the cosine distance
+        normalized_vector = F.normalize(combined_tensor, dim=1)
+        cosine_similarity = F.cosine_similarity(normalized_vector.unsqueeze(1), normalized_vector.unsqueeze(0), dim=-1)
+        cosine_distance = 1 - cosine_similarity
+        mal_cos_dist = torch.mean(cosine_distance[:num_corrupt, :])
+        benign_cos_dist = [torch.mean(cosine_distance[i + num_corrupt]).item() for i in range(len(agents_update_dict) - num_corrupt)]
+        benign_cos_dist = sum(benign_cos_dist) / len(benign_cos_dist)
+        cos_difference = benign_cos_dist - mal_cos_dist
+
+        wandb.log({'cos_distance_malicious': (mal_cos_dist)}, step=rnd)  
+        wandb.log({'cos-benign_distance_mean': (benign_cos_dist)}, step=rnd) 
+        wandb.log({'cos-difference': (cos_difference)}, step=rnd) 
+        return 
         
 def poison_dataset(dataset, args, data_idxs=None, poison_all=False, agent_idx=-1, trainset=0):
     #Get a list of indexes that of intended target of backdoor. depends on clean image attack or normal backdoor attack
