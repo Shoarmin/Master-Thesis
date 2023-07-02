@@ -271,7 +271,7 @@ if __name__ == '__main__':
     if args.data == 'cifar10' and args.explain == 1:
         images = []
         examples = iter(poisoned_val_loader)
-        example_data, example_targets = next(examples)
+        example_data, example_targets = next(examples).to(args.device)
         gradcam_pp = GradCAMpp(global_model, global_model.layer4)
 
         for i in range(4):
