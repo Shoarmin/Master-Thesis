@@ -272,11 +272,13 @@ if __name__ == '__main__':
         images = []
         examples = iter(poisoned_val_loader)
         example_data, example_targets = next(examples)
-        example_data, example_targets =  example_data.cpu(), example_targets.cpu()
         gradcam_pp = GradCAMpp(global_model, global_model.layer4)
 
+        device = example_data.device  # Get the device of example_data
+
         for i in range(4):
-            cam_pp, _ = gradcam_pp(example_data[i].unsqueeze(0))
+            example_data_i = example_data[i].unsqueeze(0).to(device)  # Move example_data to the same device
+            cam_pp, _ = gradcam_pp(example_data_i)
             heatmap_pp, result_pp = visualize_cam(cam_pp, example_data[i])
             images.extend([example_data[i].cpu(), heatmap_pp, result_pp])
             grid_image = torchvision.utils.make_grid(images, nrow=3)
