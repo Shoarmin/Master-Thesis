@@ -133,15 +133,12 @@ if __name__ == '__main__':
         #calculate the trigger visibility metric
         utilities.trigger_visibility(args, compare_img_loader, compare_pos_img_loader)
 
-        # uncomment this if you want to see pattern in the validation dataset
+        # # uncomment this if you want to see pattern in the validation dataset
         # if args.climg_attack == 1: 
         #     examples = iter(val_set_dict[5])
         # else:
-        #     examples = iter(poisoned_val_loader)
-        #     examples2 = iter(poisoned_train_loader)
+        #     examples = iter(poisoned_val_loader) #Change to poisoned_train_loader to see the images trained on
         # example_data, example_targets = next(examples)
-        # example_data2, example_targets2 = next(examples2)
-
         # img_grid = torchvision.utils.make_grid(example_data)
         # writer.add_image(f'{example_targets}', img_grid)
         # writer.close()                         
@@ -269,12 +266,11 @@ if __name__ == '__main__':
         torch.save(global_model.state_dict(), os.path.join('saved_models/', 'final_model_{data}_round_{rounds}_.pt'.format(data = args.data, rounds = args.rounds)))
 
     if args.data == 'cifar10' and args.explain == 1:
+        global_model.to('cpu')
         images = []
         examples = iter(poisoned_val_loader)
         example_data, example_targets = next(examples)
         gradcam_pp = GradCAMpp(global_model, global_model.layer4)
-
-        device = example_data.device  # Get the device of example_data
 
         for i in range(4):
             cam_pp, _ = gradcam_pp(example_data[i].unsqueeze(0))
