@@ -277,8 +277,7 @@ if __name__ == '__main__':
         device = example_data.device  # Get the device of example_data
 
         for i in range(4):
-            example_data_i = example_data[i].unsqueeze(0).to(device)  # Move example_data to the same device
-            cam_pp, _ = gradcam_pp(example_data_i)
+            cam_pp, _ = gradcam_pp(example_data[i].unsqueeze(0))
             heatmap_pp, result_pp = visualize_cam(cam_pp, example_data[i])
             images.extend([example_data[i].cpu(), heatmap_pp, result_pp])
             grid_image = torchvision.utils.make_grid(images, nrow=3)
