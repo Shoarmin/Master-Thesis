@@ -34,7 +34,7 @@ if __name__ == '__main__':
     if args.explain == 0:
         project_name = f"{args.data}-{args.aggr}-{args.num_agents}-{args.pattern}-{args.norm}"
     else:
-        project_name = "test"
+        project_name = "gradcam"
 
     wandb.init(
         project = project_name, 
