@@ -11,7 +11,6 @@ from options import args_parser
 from aggregation import Aggregation
 from utilities import H5Dataset
 import random
-from torch.utils.tensorboard import SummaryWriter
 from torch.utils.data import DataLoader, TensorDataset
 import torch.nn as nn
 from utils.text_load import Dictionary
@@ -32,7 +31,7 @@ if __name__ == '__main__':
     warnings.filterwarnings("ignore")
     torch.manual_seed(2809)
     if args.explain == 0:
-        project_name = f"{args.data}-{args.aggr}-{args.num_agents}-{args.pattern}-{args.norm}"
+        project_name = "images_examples" #f"{args.data}-{args.aggr}-{args.num_agents}-{args.pattern}-{args.norm}"
     else:
         project_name = "gradcam"
 
@@ -58,7 +57,7 @@ if __name__ == '__main__':
         "delta_val": args.delta_val,
         "delta_attack": args.delta_attack,
         "frequency": args.frequency,
-         "norm": args.norm,
+        "norm": args.norm,
         }
     )
         
@@ -67,7 +66,6 @@ if __name__ == '__main__':
             + f"""-aggr:{args.aggr}-client_lr:{args.client_lr}-num_cor:{args.num_corrupt}"""\
             + f"""-num_corrupt:{args.num_corrupt}-pttrn:{args.pattern}-data:{args.data}"""
     file_name = file_name.replace(":", '=')
-    writer = SummaryWriter(f'logs/{file_name}')
     cum_poison_acc_mean = 0
     
     # load dataset and user groups (i.e., user to data mapping)
@@ -140,8 +138,9 @@ if __name__ == '__main__':
         #     examples = iter(poisoned_val_loader) #Change to poisoned_train_loader to see the images trained on
         # example_data, example_targets = next(examples)
         # img_grid = torchvision.utils.make_grid(example_data)
-        # writer.add_image(f'{example_targets}', img_grid)
-        # writer.close()                         
+        # grid_image_np = img_grid.permute(1, 2, 0).cpu().numpy()
+        # image_to_log = wandb.Image(grid_image_np)
+        # wandb.log({"Grid Image": image_to_log})           
         # exit()
     
     #train_dataset[user] = 80.000 users, num of posts, post, word of post 
@@ -172,7 +171,7 @@ if __name__ == '__main__':
             if args.data == 'fedemnist': 
                 agent = Agent(_id, args) #CGECK IF THIS LINE IS REDUNDANT OR NOT
             else:
-                agent = Agent(_id, args, train_dataset, user_groups[_id], writer)
+                agent = Agent(_id, args, train_dataset, user_groups[_id])
             agents.append(agent) 
             agent_data_sizes[_id] = agent.n_data
         else:
@@ -183,9 +182,9 @@ if __name__ == '__main__':
     # aggregation server and the loss function
     n_model_params = len(parameters_to_vector(global_model.parameters()))
     if args.data != 'reddit':
-        aggregator = Aggregation(agent_data_sizes, n_model_params, args, writer, poisoned_val_loader) 
+        aggregator = Aggregation(agent_data_sizes, n_model_params, args, poisoned_val_loader) 
     else:
-        aggregator = Aggregation(agent_data_sizes, n_model_params, args, writer) 
+        aggregator = Aggregation(agent_data_sizes, n_model_params, args) 
 
     criterion = nn.CrossEntropyLoss().to(args.device)
     update_list = []
@@ -225,7 +224,6 @@ if __name__ == '__main__':
                 wandb.log({'malicious_norm': (l2_mal)}, step=rnd)
                 wandb.log({'Validation_Loss': val_loss}, step=rnd)
                 wandb.log({'Validation_Accuracy': val_acc}, step=rnd)
-                wandb.log({f'Val_Per_Class_Acc': val_per_class_acc}, step=rnd)
                 print(f'| Val_Loss/Val_Acc: {val_loss:.3f} / {val_acc:.3f} |')
                 print(f'| Val_Per_Class_Acc: {val_per_class_acc} ')
 

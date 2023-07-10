@@ -135,5 +135,8 @@ def args_parser():
     parser.add_argument('--explain', type=int, default=0,
                 help='Use gradcam to explain you results (only works for cifar10)')
     
+    parser.add_argument('--attack_interval', type=int, default=1,
+                help="Fixed-frequency attack: have a poisoned agent participate in every interval round")
+    
     args = parser.parse_args()
     return args

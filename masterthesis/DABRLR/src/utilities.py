@@ -252,21 +252,13 @@ def calculate_psnr(image1, image2):
     return psnr
 
 def trigger_visibility(args, compare_img_loader, compare_pos_img_loader):
+    #print out the psnr value for all the clean images and all the poisoned images
     psnr = piqa.PSNR()
-    if args.data == 'fmnist':
-        ssim = piqa.SSIM(n_channels = 1)
-    else:
-        ssim = piqa.SSIM()
     clean_images = iter(compare_img_loader)
     pos_images = iter(compare_pos_img_loader)
     clean_images, _ = next(clean_images)
     pos_images, _ = next(pos_images)
-        
-    print(psnr(clean_images, pos_images))
-    print(ssim(clean_images, pos_images))
-
-    wandb.log({'l2_distance_malicious': psnr(clean_images, pos_images)})   
-    wandb.log({'l2-benign_distance_mean': ssim(clean_images, pos_images)}) 
+    wandb.log({'psnr': psnr(clean_images, pos_images)}) 
     return
 
 def print_distances(agents_update_dict, rnd, num_corrupt): #get the euclidian and cosine distances of the malicious and benign updates
@@ -302,7 +294,7 @@ def print_distances(agents_update_dict, rnd, num_corrupt): #get the euclidian an
     benign_cos_dist = sum(benign_cos_dist) / len(benign_cos_dist)
     cos_difference = benign_cos_dist - mal_cos_dist
 
-    wandb.log({'cos_distance_malicious': (mal_cos_dist)}, step=rnd)  
+    wandb.log({'c=os_distance_malicious': (mal_cos_dist)}, step=rnd)  
     wandb.log({'cos-benign_distance_mean': (benign_cos_dist)}, step=rnd) 
     wandb.log({'cos-difference': (cos_difference)}, step=rnd) 
     return 
@@ -537,7 +529,7 @@ def add_pattern_bd(x, trainset, dataset='cifar10', pattern_type='square', agent_
             pattern = np.zeros_like(x)
             for i in range(4, 4 + 5):
                 for j in range(4, 4 + 5):
-                    pattern[i, j] = -delta * 2
+                    pattern[i, j] = -delta
 
             x = x + pattern
             x = np.where(x > 255, 255, x)
@@ -599,7 +591,7 @@ def add_pattern_bd(x, trainset, dataset='cifar10', pattern_type='square', agent_
             pattern = np.zeros_like(x)
             for i in range(3, 3 + 4):
                 for j in range(3, 3 + 4):
-                    pattern[i, j] = delta * 2
+                    pattern[i, j] = delta
 
             x = x + pattern
             x = np.where(x > 255, 255, x)

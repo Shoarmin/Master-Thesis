@@ -13,10 +13,9 @@ import wandb
 
 
 class Aggregation():
-    def __init__(self, agent_data_sizes, n_params, args, writer, poisoned_val_loader=None):
+    def __init__(self, agent_data_sizes, n_params, args, poisoned_val_loader=None):
         self.agent_data_sizes = agent_data_sizes
         self.args = args
-        self.writer = writer
         self.server_lr = args.server_lr
         self.n_params = n_params
         self.poisoned_val_loader = poisoned_val_loader
@@ -246,13 +245,9 @@ class Aggregation():
                               
         l2_honest_updates = [torch.norm(update, p=norm) for update in honest_updates]
         avg_l2_honest_updates = sum(l2_honest_updates) / len(l2_honest_updates)
-        self.writer.add_scalar(f'Norms/Avg_Honest_L{norm}', avg_l2_honest_updates, cur_round)
-        print(avg_l2_honest_updates)
         
         if len(corrupt_updates) > 0:
             l2_corrupt_updates = [torch.norm(update, p=norm) for update in corrupt_updates]
             avg_l2_corrupt_updates = sum(l2_corrupt_updates) / len(l2_corrupt_updates)
-            self.writer.add_scalar(f'Norms/Avg_Corrupt_L{norm}', avg_l2_corrupt_updates, cur_round) 
-            print(avg_l2_corrupt_updates)
             return avg_l2_corrupt_updates, avg_l2_honest_updates
         return 0, avg_l2_honest_updates

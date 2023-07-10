@@ -13,7 +13,7 @@ import torchvision
 
 
 class Agent():
-    def __init__(self, id, args, train_dataset=None, data_idxs=None, writer=None):
+    def __init__(self, id, args, train_dataset=None, data_idxs=None):
         self.id = id
         self.args = args
 
@@ -44,20 +44,13 @@ class Agent():
         if self.id < args.num_corrupt:
             print("poison loader set")
             self.poison_loader = DataLoader(self.poison_dataset, batch_size=self.args.bs, shuffle=True, num_workers=args.num_workers, pin_memory=False)
-            
-            # examples = iter(self.poison_loader)
-            # example_data, example_targets = next(examples)
-            # img_grid = torchvision.utils.make_grid(example_data)
-            # writer.add_image(f'{example_targets}', img_grid)
-            # writer.close()                         
-            # exit()
-
+        
         # size of local dataset
         self.n_data = len(self.train_dataset)
 
     def is_attack_round(self, rnd):
-        "Function checks if the attacker can poisomn his model this round"
-        if rnd < self.args.attack_rounds:
+        #Check if the attacker can attack this round based on attack rounds and attack interval
+        if rnd < self.args.attack_rounds and rnd % self.args.attack_interval == 0:
             return True
         else:
             return False
@@ -82,8 +75,7 @@ class Agent():
         if (self.id < self.args.num_corrupt and attack and self.args.attack == 'normal') or (self.args.attack == 'dba' and self.id % self.args.num_corrupt == 0 and attack and self.id < self.args.num_corrupt): 
             dataloader = self.poison_loader
         else:
-        #use the normal set for benign agents or malicious agent in non-attack round
-           # print(f'train normal {self.id}')
+        #use the benign datasetset for  malicious agent in non-attack round
             dataloader = self.train_loader
 
         for _ in range(self.args.local_ep):
@@ -217,7 +209,7 @@ class Agent():
             update = parameters_to_vector(global_model.parameters()).double() - initial_global_model_params
             return update
 
-    def fedinv(self, global_model, writer):        
+    def fedinv(self, global_model):        
         criterion = nn.CrossEntropyLoss()
         dataloader = self.poison_loader
 
@@ -278,10 +270,6 @@ class Agent():
                         history.append(temp[0])   
                         print(dummy_label)
                         print("Dummy label is %d." % torch.argmax(dummy_label, dim=-1).item())
-
-                img_grid = torchvision.utils.make_grid(history)
-                writer.add_image(f'{torch.argmax(dummy_label, dim=-1).item()}', img_grid)
-                writer.close()   
                 exit()
             else:
                 continue
