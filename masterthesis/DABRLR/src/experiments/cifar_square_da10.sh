@@ -6,10 +6,10 @@
 #SBATCH --partition=general
 
 # The default Quality of Service is the 'short' QoS (maximum run time: 4 hours)
-#SBATCH --qos=short
+#SBATCH --qos=medium
 
 # The default run (wall-clock) time is 1 minute
-#SBATCH --time=2:00:00
+#SBATCH --time=4:00:00
 
 # The default number of parallel tasks per job is 1
 #SBATCH --ntasks=1
@@ -18,7 +18,7 @@
 #SBATCH --cpus-per-task=1
 
 # The default memory per node is 1024 megabytes (1GB)
-#SBATCH --mem=10GB
+#SBATCH --mem=20GB
 
 #SBATCH --gres=gpu:a40:1
 
@@ -49,13 +49,10 @@ echo -ne "Running on node "
 hostname
 echo "Standard output:"
 
-srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=60 --delta_attack=60
-srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=60 --delta_attack=50
-srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=60 --delta_attack=40
-srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=60 --delta_attack=30
-srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=60 --delta_attack=20
-srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=60 --delta_attack=10
+for ((i = 20; i <= 80; i += 10)); do
+        srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=10 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=square --delta_val=$i --delta_attack=10
+done
 
+#srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=10 --rounds=100 --num_corrupt=0 --poison_frac=0 --climg_attack=0 --pattern=sig --delta_val=0 --delta_attack=0
 # Measure GPU usage of your job (result)
 /usr/bin/nvidia-smi --query-accounted-apps='gpu_utilization,mem_utilization,max_memory_usage,time' --format='csv' | /usr/bin/grep -v -F "$previous"
-

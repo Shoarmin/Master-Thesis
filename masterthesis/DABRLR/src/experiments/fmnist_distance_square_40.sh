@@ -18,7 +18,7 @@
 #SBATCH --cpus-per-task=1
 
 # The default memory per node is 1024 megabytes (1GB)
-#SBATCH --mem=10GB
+#SBATCH --mem=20GB
 
 #SBATCH --gres=gpu:a40:1
 
@@ -49,13 +49,11 @@ echo -ne "Running on node "
 hostname
 echo "Standard output:"
 
-srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=60 --delta_attack=60
-srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=60 --delta_attack=50
-srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=60 --delta_attack=40
-srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=60 --delta_attack=30
-srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=60 --delta_attack=20
-srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=60 --delta_attack=10
+srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=40 --rounds=60 --num_corrupt=2 --poison_frac=0.5 --climg_attack=0 --pattern=square --delta_val=30 --delta_attack=10
+srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=40 --rounds=60 --num_corrupt=2 --poison_frac=0.5 --climg_attack=0 --pattern=square --delta_val=30 --delta_attack=15
+srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=40 --rounds=60 --num_corrupt=2 --poison_frac=0.5 --climg_attack=0 --pattern=square --delta_val=30 --delta_attack=20
+srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=40 --rounds=60 --num_corrupt=2 --poison_frac=0.5 --climg_attack=0 --pattern=square --delta_val=30 --delta_attack=25
+srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=40 --rounds=60 --num_corrupt=2 --poison_frac=0.5 --climg_attack=0 --pattern=square --delta_val=30 --delta_attack=30
 
 # Measure GPU usage of your job (result)
 /usr/bin/nvidia-smi --query-accounted-apps='gpu_utilization,mem_utilization,max_memory_usage,time' --format='csv' | /usr/bin/grep -v -F "$previous"
-

@@ -49,13 +49,11 @@ echo -ne "Running on node "
 hostname
 echo "Standard output:"
 
-srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=60 --delta_attack=60
-srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=60 --delta_attack=50
-srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=60 --delta_attack=40
-srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=60 --delta_attack=30
-srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=60 --delta_attack=20
-srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=60 --delta_attack=10
+srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=60 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=square --delta_val=200 --delta_attack=100 --explain=1
+srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=60 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=square --delta_val=200 --delta_attack=50 --explain=1
+srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=60 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=square --delta_val=200 --delta_attack=30 --explain=1
+srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=60 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=square --delta_val=200 --delta_attack=20 --explain=1
+srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=60 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=square --delta_val=200 --delta_attack=10 --explain=1
 
 # Measure GPU usage of your job (result)
 /usr/bin/nvidia-smi --query-accounted-apps='gpu_utilization,mem_utilization,max_memory_usage,time' --format='csv' | /usr/bin/grep -v -F "$previous"
-

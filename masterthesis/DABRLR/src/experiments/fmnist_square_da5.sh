@@ -49,8 +49,8 @@ echo -ne "Running on node "
 hostname
 echo "Standard output:"
 
-for ((i = 10; i <= 60; i += 10)); do
-        srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=60 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=square --delta_val=$i --delta_attack=5
+for ((i = 5; i <= 30; i += 5)); do
+        srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=60 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=square --delta_val=$i --delta_attack=3
 done
 
 #Measure GPU usage of your job (result)
