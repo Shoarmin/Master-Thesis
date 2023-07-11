@@ -31,13 +31,13 @@ if __name__ == '__main__':
     warnings.filterwarnings("ignore")
     torch.manual_seed(2809)
     if args.explain == 0:
-        project_name = "images_examples" #f"{args.data}-{args.aggr}-{args.num_agents}-{args.pattern}-{args.norm}"
+        project_name = f"{args.data}-{args.aggr}-{args.num_agents}-{args.pattern}-{args.norm}--{args.attack_interval}"
     else:
         project_name = "gradcam"
 
     wandb.init(
         project = project_name, 
-        name = f"dv: {args.delta_val}, da: {args.delta_attack}, f: {args.frequency}",
+        name = f"dv: {args.delta_val}, da: {args.delta_attack}, f: {args.frequency}, ai: {args.attack_interval}",
         config={
         "learning_rate": args.client_lr,
         "dataset": args.data,
@@ -58,6 +58,7 @@ if __name__ == '__main__':
         "delta_attack": args.delta_attack,
         "frequency": args.frequency,
         "norm": args.norm,
+        "attack_interval": args.attack_interval,
         }
     )
         
