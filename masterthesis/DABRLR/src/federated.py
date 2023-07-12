@@ -31,7 +31,7 @@ if __name__ == '__main__':
     warnings.filterwarnings("ignore")
     torch.manual_seed(2809)
     if args.explain == 0:
-        project_name = f"{args.data}-{args.aggr}-{args.num_agents}-{args.pattern}-{args.norm}--{args.attack_interval}"
+        project_name = f"{args.data}-{args.aggr}-{args.num_agents}-{args.pattern}-{args.norm}-{args.attack_interval}"
     else:
         project_name = "gradcam"
 
@@ -125,7 +125,7 @@ if __name__ == '__main__':
             poisoned_train_loader = DataLoader(poisoned_train_set, batch_size=args.bs, shuffle=False, num_workers=args.num_workers, pin_memory=False) 
             poisoned_val_loader = DataLoader(poisoned_val_set, batch_size=args.bs, shuffle=False, num_workers=args.num_workers, pin_memory=False) 
             compare_img_loader = DataLoader(compare_set, batch_size=len(compare_set.idxs), shuffle=False, num_workers=args.num_workers, pin_memory=False)
-            compare_pos_img_loader = DataLoader(poisoned_val_set, batch_size=len(poisoned_val_set.idxs), shuffle=False, num_workers=args.num_workers, pin_memory=False)
+            compare_pos_img_loader = DataLoader(poisoned_train_set, batch_size=len(poisoned_train_set.idxs), shuffle=False, num_workers=args.num_workers, pin_memory=False)
             val_set_dict[i] = poisoned_val_loader
         print("Poisoned Validation set")
 
