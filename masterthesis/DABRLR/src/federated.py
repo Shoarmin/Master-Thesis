@@ -30,10 +30,13 @@ if __name__ == '__main__':
     utilities.print_exp_details(args)
     warnings.filterwarnings("ignore")
     torch.manual_seed(2809)
+    cum_poison_acc_mean = 0
     if args.explain == 0:
         project_name = f"{args.data}-{args.aggr}-{args.num_agents}-{args.pattern}-{args.norm}-{args.attack_interval}"
-    else:
+    elif args.explain == 1:
         project_name = "gradcam"
+    else:
+        project_name = "images_examples"
 
     wandb.init(
         project = project_name, 
@@ -61,14 +64,7 @@ if __name__ == '__main__':
         "attack_interval": args.attack_interval,
         }
     )
-        
-    # # data recorders
-    file_name = f"""time:{ctime()}-clip_val:{args.clip}-noise_std:{args.noise}"""\
-            + f"""-aggr:{args.aggr}-client_lr:{args.client_lr}-num_cor:{args.num_corrupt}"""\
-            + f"""-num_corrupt:{args.num_corrupt}-pttrn:{args.pattern}-data:{args.data}"""
-    file_name = file_name.replace(":", '=')
-    cum_poison_acc_mean = 0
-    
+
     # load dataset and user groups (i.e., user to data mapping)
     if args.data in ['cifar10', 'cifar100', 'tinyimage', 'fedemnist', 'fmnist']:
         # load dataset and user groups (i.e., user to data mapping)
@@ -130,19 +126,21 @@ if __name__ == '__main__':
         print("Poisoned Validation set")
 
         #calculate the trigger visibility metric
-        utilities.trigger_visibility(args, compare_img_loader, compare_pos_img_loader)
+        if args.data in ['cifar10', 'cifar100', 'fedemnist', 'fmnist']:
+            utilities.trigger_visibility(args, compare_img_loader, compare_pos_img_loader)
 
-        # # uncomment this if you want to see pattern in the validation dataset
-        # if args.climg_attack == 1: 
-        #     examples = iter(val_set_dict[5])
-        # else:
-        #     examples = iter(poisoned_val_loader) #Change to poisoned_train_loader to see the images trained on
-        # example_data, example_targets = next(examples)
-        # img_grid = torchvision.utils.make_grid(example_data)
-        # grid_image_np = img_grid.permute(1, 2, 0).cpu().numpy()
-        # image_to_log = wandb.Image(grid_image_np)
-        # wandb.log({"Grid Image": image_to_log})           
-        # exit()
+        # visualize thepattern in the validation dataset
+        if args.explain >= 2:
+            if args.climg_attack == 1: 
+                examples = iter(val_set_dict[5])
+            else:
+                examples = iter(poisoned_val_loader) #Change to poisoned_train_loader to see the images trained on
+            example_data, example_targets = next(examples)
+            img_grid = torchvision.utils.make_grid(example_data)
+            grid_image_np = img_grid.permute(1, 2, 0).cpu().numpy()
+            image_to_log = wandb.Image(grid_image_np)
+            wandb.log({"Grid Image": image_to_log})           
+            exit()
     
     #train_dataset[user] = 80.000 users, num of posts, post, word of post 
     #val_dataset[post] =  14208 posts, 10 words per post (batch size), word 

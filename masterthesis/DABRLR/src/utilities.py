@@ -473,7 +473,7 @@ def add_pattern_bd(x, trainset, dataset='cifar10', pattern_type='square', agent_
 
     # if cifar is selected, we're doing a distributed backdoor attack (i.e., portions of trojan pattern is split between agents, only works for plus)
     if dataset in ['cifar10', 'cifar100']:
-        size = delta
+        size = 5
         if pattern_type == 'plus':
             if agent_idx == -1 or attack_type!='dba':
                 # vertical line
@@ -537,12 +537,37 @@ def add_pattern_bd(x, trainset, dataset='cifar10', pattern_type='square', agent_
             return x
     
     elif dataset == 'tinyimage':
-        if pattern_type == 'square':
-            for i in range(10, 16):
-                for j in range(10, 16):
-                    x[0][i, j] = 0
-                    x[1][i, j] = 0
-                    x[2][i, j] = 0
+        x = x * 255
+
+        if pattern_type == 'sig':
+            f = frequency
+            x = np.float32(x)
+            pattern = np.zeros_like(x)
+            m = pattern.shape[1]
+            for i in range(x.shape[0]):
+                for j in range(x.shape[1]):
+                    for k in range(x.shape[2]):
+                        pattern[0][k, j] = delta * np.sin(2 * np.pi * j * f / m)
+                        pattern[1][k, j] = delta * np.sin(2 * np.pi * j * f / m)
+                        pattern[2][k, j] = delta * np.sin(2 * np.pi * j * f / m)
+
+            x = x + pattern
+            x = np.where(x > 255, 255, x)
+            x = np.where(x < 0, 0, x)
+            return x
+
+        elif pattern_type == 'square':
+            x = np.float32(x)
+            pattern = np.zeros_like(x)
+            for i in range(10, 10 + 10):
+                for j in range(10, 10 + 10):
+                    pattern[0][i, j] = -delta
+                    pattern[1][i, j] = -delta
+                    pattern[2][i, j] = -delta
+            x = x + pattern
+            x = np.where(x > 255, 255, x)
+            x = np.where(x < 0, 0, x)
+            return x
             
         elif pattern_type == 'plus':
             start_idx = 6
