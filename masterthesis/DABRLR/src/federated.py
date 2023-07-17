@@ -30,7 +30,6 @@ if __name__ == '__main__':
     utilities.print_exp_details(args)
     warnings.filterwarnings("ignore")
     torch.manual_seed(2809)
-    max_accuracy = []
     if args.explain == 0:
         project_name = f"{args.data}-{args.aggr}-{args.num_agents}-{args.pattern}-{args.norm}-{args.attack_interval}"
     elif args.explain == 1:
@@ -238,13 +237,11 @@ if __name__ == '__main__':
                     wandb.log({'Poison_Training_Loss': poison_loss_training}, step=rnd)
                     wandb.log({'Poison_Training_Acc': poison_acc_training}, step=rnd)
 
-                    max_accuracy.append(poison_acc) 
                     print(f'| Poison Loss/Poison Acc: {poison_loss:.3f} / {poison_acc:.3f} |')
                     
                 else:
                     for key in val_set_dict.keys():
                         poison_loss, (poison_acc, _) = utilities.get_loss_n_accuracy(global_model, criterion, val_set_dict[key], args)
-                        max_accuracy.append(poison_acc)
                         wandb.log('Poison/Base_Class_Accuracy', val_per_class_acc[args.base_class])
                         wandb.log('Poison/Poison_Accuracy', poison_acc)
                         wandb.log('Poison/Poison_Loss', poison_loss)
@@ -278,6 +275,5 @@ if __name__ == '__main__':
             image_to_log = wandb.Image(grid_image_np)
             wandb.log({"Grid Image": image_to_log})  
 
-    wandb.log({'Max_Accuracy': max(max_accuracy)}, step=args.delta_attack)
     print('Training has finished!')
     wandb.finish()
