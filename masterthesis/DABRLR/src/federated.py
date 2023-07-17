@@ -157,7 +157,7 @@ if __name__ == '__main__':
 
     #if there is a pretrained model load it
     if args.load_model==True:
-        if torch.cuda.is_available() :
+        if torch.cuda.is_available():
             loaded_params = torch.load('saved_models/final_model_tinyimage_round_20_.pt')
         else:
             loaded_params = torch.load('saved_models/final_model_tinyimage_round_20_.pt', map_location='cpu')
@@ -234,6 +234,7 @@ if __name__ == '__main__':
                     wandb.log({'Poison_Base_Class_Accuracy': val_per_class_acc[args.base_class]}, step=rnd)
                     wandb.log({'Poison_Val_Accuracy': poison_acc}, step=rnd)
                     wandb.log({'Poison_Val_Loss': poison_loss}, step=rnd)
+                    wandb.log({'Max_Accuracy': poison_acc}, step=args.delta_attack)
 
                     wandb.log({'Poison_Training_Loss': poison_loss_training}, step=rnd)
                     wandb.log({'Poison_Training_Acc': poison_acc_training}, step=rnd)
