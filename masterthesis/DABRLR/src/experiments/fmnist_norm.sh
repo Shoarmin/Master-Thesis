@@ -49,10 +49,9 @@ echo -ne "Running on node "
 hostname
 echo "Standard output:"
 
-srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=60 --delta_attack=5 --norm=true --distribution=dirichlet --alpha=0.2
-srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=60 --delta_attack=10 --norm=true --distribution=dirichlet --alpha=0.2
-srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=60 --delta_attack=15 --norm=true --distribution=dirichlet --alpha=0.2
-srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=60 --delta_attack=20 --norm=true --distribution=dirichlet --alpha=0.2
-srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=60 --delta_attack=30 --norm=true --distribution=dirichlet --alpha=0.2
+for ((i = 10; i <= 60; i += 10)); do
+        srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=$i --delta_attack=$i --distribution=dirichlet --alpha=0.8 --norm=true
+done
+
 # Measure GPU usage of your job (result)
 /usr/bin/nvidia-smi --query-accounted-apps='gpu_utilization,mem_utilization,max_memory_usage,time' --format='csv' | /usr/bin/grep -v -F "$previous"

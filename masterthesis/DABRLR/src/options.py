@@ -108,7 +108,7 @@ def args_parser():
     parser.add_argument('--maskfraction', type=float, default=0.99,
                     help="Add the fraction that you want to mask for neurotoxin attack")
     
-    parser.add_argument('--attack_rounds', type=int, default=100,
+    parser.add_argument('--attack_rounds', type=int, default=200,
                     help="The number of rounds for the attacker to participate in")
     
     parser.add_argument('--poison_sentence', type=str, default="pastas from asturias is delicious",
