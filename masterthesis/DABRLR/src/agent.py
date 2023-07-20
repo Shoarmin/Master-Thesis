@@ -32,13 +32,13 @@ class Agent():
             self.train_dataset = utilities.DatasetSplit(train_dataset, data_idxs)
             # for backdoor attack, agent poisons his local dataset
             if self.id < args.num_corrupt:
-                # if args.data == 'tinyimage':
-                #     self.poison_dataset = copy.deepcopy(self.train_dataset)
-                #     self.poison_dataset = utilities.poison_dataset(self.poison_dataset.dataset, args, data_idxs, agent_idx=self.id)
-                # else:
-                self.poison_dataset = copy.deepcopy(self.train_dataset)
-                utilities.poison_dataset(self.poison_dataset.dataset, args, data_idxs, agent_idx=self.id)
-
+                if args.data == 'tinyimage':
+                    self.poison_dataset = copy.deepcopy(self.train_dataset)
+                    self.poison_dataset = utilities.poison_dataset(self.poison_dataset.dataset, args, data_idxs, agent_idx=self.id)
+                else:
+                    self.poison_dataset = copy.deepcopy(self.train_dataset)
+                    utilities.poison_dataset(self.poison_dataset.dataset, args, data_idxs, agent_idx=self.id)
+    
         # get dataloader
         self.train_loader = DataLoader(self.train_dataset, batch_size=self.args.bs, shuffle=True, num_workers=args.num_workers, pin_memory=False)
         if self.id < args.num_corrupt:

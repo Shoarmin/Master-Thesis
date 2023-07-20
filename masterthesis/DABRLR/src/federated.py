@@ -107,15 +107,15 @@ if __name__ == '__main__':
             poisoned_train_set = utilities.DatasetSplit(copy.deepcopy(val_dataset), idxs)
             compare_set = utilities.DatasetSplit(copy.deepcopy(val_dataset), idxs)
 
-            # if args.data == 'tinyimage':
-            #     poisoned_train_set = utilities.poison_dataset(poisoned_train_set.dataset, args, idxs, poison_all=True, trainset=1)
-            # else:
-            utilities.poison_dataset(poisoned_train_set.dataset, args, idxs, poison_all=True, trainset=1)
+            if args.data == 'tinyimage':
+                poisoned_train_set = utilities.poison_dataset(poisoned_train_set.dataset, args, idxs, poison_all=True, trainset=1)
+            else:
+                utilities.poison_dataset(poisoned_train_set.dataset, args, idxs, poison_all=True, trainset=1)
                 
-            # if args.data == 'tinyimage':
-            #     poisoned_val_set = utilities.poison_dataset(poisoned_val_set.dataset, args, idxs, poison_all=True)
-            # else:
-            utilities.poison_dataset(poisoned_val_set.dataset, args, idxs, poison_all=True)
+            if args.data == 'tinyimage':
+                poisoned_val_set = utilities.poison_dataset(poisoned_val_set.dataset, args, idxs, poison_all=True)
+            else:
+                utilities.poison_dataset(poisoned_val_set.dataset, args, idxs, poison_all=True)
 
             poisoned_train_loader = DataLoader(poisoned_train_set, batch_size=args.bs, shuffle=False, num_workers=args.num_workers, pin_memory=False) 
             poisoned_val_loader = DataLoader(poisoned_val_set, batch_size=args.bs, shuffle=False, num_workers=args.num_workers, pin_memory=False) 
