@@ -67,6 +67,24 @@ class DatasetSplit(Dataset):
         inp, target = self.dataset[self.idxs[item]]
         return inp, target
 
+class General_Dataset(Dataset):
+    """ An abstract Dataset class wrapped around Pytorch Dataset class """
+    def __init__(self, data, targets, users_index = None, transform = None):
+        self.data = data
+        self.targets = targets
+        self.transform = transform
+        if users_index != None:
+            self.users_index = users_index
+    def __len__(self):
+        return len(self.data)
+        
+    def __getitem__(self, item):
+        img = self.data[item]
+        label = self.targets[item]
+        if self.transform != None:
+            img = self.transform(img)
+        return img, label 
+    
 def distribute_dirichlet(dataset, args, num_classes):
     print(num_classes)
     net_dataidx_map = {}
@@ -133,6 +151,16 @@ def distribute_data(dataset, args):
                 class_ctr+=1
     return dict_users      
 
+def load_imagenet(path, transform = None):
+    imagenet_list = torch.load(path)
+    data_list = []
+    targets_list = []
+    for item in imagenet_list:
+        data_list.append(item[0])
+        targets_list.append(item[1])
+    targets = torch.LongTensor(targets_list)
+    return General_Dataset(data = data_list, targets=targets, transform=transform)
+
 def get_datasets(args):
     """ returns train and test datasets """
     train_dataset, test_dataset = None, None
@@ -194,13 +222,13 @@ def get_datasets(args):
             _data_dir = '/tudelft.net/staff-bulk/ewi/insy/CYS/shoarmin/tiny-imagenet-200/'
         else:
             _data_dir = '../data/tiny-imagenet-200/'
-        train_dataset = datasets.ImageFolder(os.path.join(_data_dir, 'train'), _data_transforms['train'])
-        test_dataset = datasets.ImageFolder(os.path.join(_data_dir, 'val'),_data_transforms['val'])
+        train_dataset = load_imagenet(os.path.join(_data_dir, 'train'), _data_transforms['train']) #datasets.ImageFolder(os.path.join(_data_dir, 'train'), _data_transforms['train'])
+        test_dataset = load_imagenet(os.path.join(_data_dir, 'val'),_data_transforms['val']) #datasets.ImageFolder(os.path.join(_data_dir, 'val'),_data_transforms['val'])
         train_dataset.targets, test_dataset.targets = torch.LongTensor(train_dataset.targets), torch.LongTensor(test_dataset.targets)  
 
         #create data attributes for each of the datasets, we will need it later in the poison phase
-        train_dataset.data = [train_dataset[idx][0] for idx in range(len(train_dataset))]
-        test_dataset.data = [test_dataset[idx][0] for idx in range(len(test_dataset))]
+        # train_dataset.data = [train_dataset[idx][0] for idx in range(len(train_dataset))]
+        # test_dataset.data = [test_dataset[idx][0] for idx in range(len(test_dataset))]
 
     elif args.data == 'reddit':
         if torch.cuda.is_available():
@@ -330,13 +358,13 @@ def poison_dataset(dataset, args, data_idxs=None, poison_all=False, agent_idx=-1
             dataset.data[idx] = torch.tensor(bd_img)
         dataset.targets[idx] = args.target_class
 
-    if args.data == 'tinyimage':
-        #since we cannot directly update the data from the tinyimage dataset we return a new one with poisoned images and replace the old one 
-        imagelist = torch.stack(dataset.data, dim=0)
-        tempset = TensorDataset(imagelist, dataset.targets)
-        tempset.data = imagelist
-        tempset.targets = dataset.targets
-        return DatasetSplit(tempset, data_idxs)
+    # if args.data == 'tinyimage':
+    #     #since we cannot directly update the data from the tinyimage dataset we return a new one with poisoned images and replace the old one 
+    #     imagelist = torch.stack(dataset.data, dim=0)
+    #     tempset = TensorDataset(imagelist, dataset.targets)
+    #     tempset.data = imagelist
+    #     tempset.targets = dataset.targets
+    #     return DatasetSplit(tempset, data_idxs)
     return
 
 def test_reddit_poison(args, reddit_data_dict, model):

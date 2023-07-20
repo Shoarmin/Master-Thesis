@@ -37,32 +37,32 @@ if __name__ == '__main__':
     else:
         project_name = "images_examples"
 
-    wandb.init(
-        project = project_name, 
-        name = f"dv: {args.delta_val}, da: {args.delta_attack}, f: {args.frequency}, ai: {args.attack_interval}",
-        config={
-        "learning_rate": args.client_lr,
-        "dataset": args.data,
-        "total_agents": args.num_agents,
-        "number_corrupt": args.num_corrupt,
-        "rounds": args.rounds,
-        "aggragator": args.aggr,
-        "local_epoch": args.local_ep,
-        "batch_size": args.bs,
-        "base_class": args.base_class,
-        "target_class": args.target_class,
-        "poison_frac": args.poison_frac,
-        "pattern": args.pattern,
-        "climg_attack": args.climg_attack,
-        "poison_frac": args.poison_frac,
-        "pattern": args.pattern,
-        "delta_val": args.delta_val,
-        "delta_attack": args.delta_attack,
-        "frequency": args.frequency,
-        "norm": args.norm,
-        "attack_interval": args.attack_interval,
-        }
-    )
+    # wandb.init(
+    #     project = project_name, 
+    #     name = f"dv: {args.delta_val}, da: {args.delta_attack}, f: {args.frequency}, ai: {args.attack_interval}",
+    #     config={
+    #     "learning_rate": args.client_lr,
+    #     "dataset": args.data,
+    #     "total_agents": args.num_agents,
+    #     "number_corrupt": args.num_corrupt,
+    #     "rounds": args.rounds,
+    #     "aggragator": args.aggr,
+    #     "local_epoch": args.local_ep,
+    #     "batch_size": args.bs,
+    #     "base_class": args.base_class,
+    #     "target_class": args.target_class,
+    #     "poison_frac": args.poison_frac,
+    #     "pattern": args.pattern,
+    #     "climg_attack": args.climg_attack,
+    #     "poison_frac": args.poison_frac,
+    #     "pattern": args.pattern,
+    #     "delta_val": args.delta_val,
+    #     "delta_attack": args.delta_attack,
+    #     "frequency": args.frequency,
+    #     "norm": args.norm,
+    #     "attack_interval": args.attack_interval,
+    #     }
+    # )
 
     # load dataset and user groups (i.e., user to data mapping)
     if args.data in ['cifar10', 'cifar100', 'tinyimage', 'fedemnist', 'fmnist']:
@@ -107,15 +107,15 @@ if __name__ == '__main__':
             poisoned_train_set = utilities.DatasetSplit(copy.deepcopy(val_dataset), idxs)
             compare_set = utilities.DatasetSplit(copy.deepcopy(val_dataset), idxs)
 
-            if args.data == 'tinyimage':
-                poisoned_train_set = utilities.poison_dataset(poisoned_train_set.dataset, args, idxs, poison_all=True, trainset=1)
-            else:
-                utilities.poison_dataset(poisoned_train_set.dataset, args, idxs, poison_all=True, trainset=1)
+            # if args.data == 'tinyimage':
+            #     poisoned_train_set = utilities.poison_dataset(poisoned_train_set.dataset, args, idxs, poison_all=True, trainset=1)
+            # else:
+            utilities.poison_dataset(poisoned_train_set.dataset, args, idxs, poison_all=True, trainset=1)
                 
-            if args.data == 'tinyimage':
-                poisoned_val_set = utilities.poison_dataset(poisoned_val_set.dataset, args, idxs, poison_all=True)
-            else:
-                utilities.poison_dataset(poisoned_val_set.dataset, args, idxs, poison_all=True)
+            # if args.data == 'tinyimage':
+            #     poisoned_val_set = utilities.poison_dataset(poisoned_val_set.dataset, args, idxs, poison_all=True)
+            # else:
+            utilities.poison_dataset(poisoned_val_set.dataset, args, idxs, poison_all=True)
 
             poisoned_train_loader = DataLoader(poisoned_train_set, batch_size=args.bs, shuffle=False, num_workers=args.num_workers, pin_memory=False) 
             poisoned_val_loader = DataLoader(poisoned_val_set, batch_size=args.bs, shuffle=False, num_workers=args.num_workers, pin_memory=False) 
