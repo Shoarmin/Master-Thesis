@@ -49,7 +49,7 @@ echo -ne "Running on node "
 hostname
 echo "Standard output:"
 
-for ((i = 5; i <= 80; i += 15)); do
+for ((i = 10; i <= 100; i += 10)); do
         srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=10 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=$i --delta_attack=$i --aggr=sign --distribution=dirichlet --alpha=0.8
 done
 
