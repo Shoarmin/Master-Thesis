@@ -555,8 +555,8 @@ def add_pattern_bd(x, trainset, dataset='cifar10', pattern_type='square', agent_
         elif pattern_type == 'square':
             x = np.float32(x)
             pattern = np.zeros_like(x)
-            for i in range(4, 4 + 5):
-                for j in range(4, 4 + 5):
+            for i in range(4, 4 + 4):
+                for j in range(4, 4 + 4):
                     pattern[i, j] = -delta
 
             x = x + pattern
