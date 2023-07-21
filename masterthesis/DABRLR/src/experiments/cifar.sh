@@ -9,7 +9,7 @@
 #SBATCH --qos=medium
 
 # The default run (wall-clock) time is 1 minute
-#SBATCH --time=6:00:00
+#SBATCH --time=4:00:00
 
 # The default number of parallel tasks per job is 1
 #SBATCH --ntasks=1
@@ -46,7 +46,7 @@ echo -ne "Running on node "
 hostname
 echo "Standard output:"
 
-for ((i = 5; i <= 55; i += 3)); do
+for ((i = 15; i <= 15; i += 10)); do
         srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=10 --rounds=60 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=15 --delta_attack=$i
 done
 

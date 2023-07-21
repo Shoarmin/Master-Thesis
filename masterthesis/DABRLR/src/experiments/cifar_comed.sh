@@ -9,7 +9,7 @@
 #SBATCH --qos=medium
 
 # The default run (wall-clock) time is 1 minute
-#SBATCH --time=4:00:00
+#SBATCH --time=6:00:00
 
 # The default number of parallel tasks per job is 1
 #SBATCH --ntasks=1
@@ -49,9 +49,15 @@ echo -ne "Running on node "
 hostname
 echo "Standard output:"
 
-for ((i = 10; i <= 100; i += 10)); do
-        srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=10 --rounds=200 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=$i --delta_attack=$i --aggr=comed --distribution=dirichlet --alpha=0.8 --attack_rounds=200
-done
+# for ((i = 10; i <= 100; i += 10)); do
+#         srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=10 --rounds=200 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=$i --delta_attack=$i --aggr=comed --distribution=dirichlet --alpha=0.8 --attack_rounds=200
+# done
+srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=10 --rounds=200 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=20 --delta_attack=15 --aggr=comed --distribution=dirichlet --alpha=0.8 --attack_rounds=200
+srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=10 --rounds=200 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=20 --delta_attack=20 --aggr=comed --distribution=dirichlet --alpha=0.8 --attack_rounds=200
+srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=10 --rounds=200 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=40 --delta_attack=20 --aggr=comed --distribution=dirichlet --alpha=0.8 --attack_rounds=200
+srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=10 --rounds=200 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=40 --delta_attack=40 --aggr=comed --distribution=dirichlet --alpha=0.8 --attack_rounds=200
+srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=10 --rounds=200 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=60 --delta_attack=60 --aggr=comed --distribution=dirichlet --alpha=0.8 --attack_rounds=200
+srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=10 --rounds=200 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=60 --delta_attack=20 --aggr=comed --distribution=dirichlet --alpha=0.8 --attack_rounds=200
 
 # Measure GPU usage of your job (result)
 /usr/bin/nvidia-smi --query-accounted-apps='gpu_utilization,mem_utilization,max_memory_usage,time' --format='csv' | /usr/bin/grep -v -F "$previous"
