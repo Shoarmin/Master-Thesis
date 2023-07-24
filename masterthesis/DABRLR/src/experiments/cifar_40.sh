@@ -52,6 +52,8 @@ echo "Standard output:"
 
 srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=40 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=20 --delta_attack=20
 srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=40 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=20 --delta_attack=15
+srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=40 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=30 --delta_attack=20
+srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=40 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=30 --delta_attack=30
 srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=40 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=40 --delta_attack=40
 srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=40 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=40 --delta_attack=20
 srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=40 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=40 --delta_attack=15
