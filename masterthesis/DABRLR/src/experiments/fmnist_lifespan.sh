@@ -9,7 +9,7 @@
 #SBATCH --qos=medium
 
 # The default run (wall-clock) time is 1 minute
-#SBATCH --time=15:00:00
+#SBATCH --time=8:00:00
 
 # The default number of parallel tasks per job is 1
 #SBATCH --ntasks=1
@@ -18,7 +18,7 @@
 #SBATCH --cpus-per-task=1
 
 # The default memory per node is 1024 megabytes (1GB)
-#SBATCH --mem=20GB
+#SBATCH --mem=12GB
 
 #SBATCH --gres=gpu:a40:1
 
@@ -49,10 +49,10 @@ echo -ne "Running on node "
 hostname
 echo "Standard output:"
 
-srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=10 --rounds=1000 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=20 --delta_attack=20 --attack_rounds=50
-srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=10 --rounds=1000 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=20 --delta_attack=15 --attack_rounds=50
-srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=10 --rounds=1000 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=20 --delta_attack=10 --attack_rounds=50
-srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=10 --rounds=1000 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=20 --delta_attack=5 --attack_rounds=50
+srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=600 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=40 --delta_attack=40 --attack_rounds=50
+srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=600 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=40 --delta_attack=30 --attack_rounds=50
+srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=600 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=40 --delta_attack=20 --attack_rounds=50
+srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=600 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=40 --delta_attack=10 --attack_rounds=50
 
 # Measure GPU usage of your job (result)
 /usr/bin/nvidia-smi --query-accounted-apps='gpu_utilization,mem_utilization,max_memory_usage,time' --format='csv' | /usr/bin/grep -v -F "$previous"
