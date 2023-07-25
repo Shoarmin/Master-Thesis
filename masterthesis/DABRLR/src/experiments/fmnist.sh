@@ -50,6 +50,7 @@ echo "Standard output:"
 #         srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=60 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=40 --delta_attack=$i
 # done
 srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=60 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=20 --delta_attack=15
+srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=60 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=60 --delta_attack=60
 
 
 # Measure GPU usage of your job (result)
