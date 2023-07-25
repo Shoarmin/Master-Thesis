@@ -53,8 +53,8 @@ echo "Standard output:"
 #         srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=200 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=$i --delta_attack=$i --aggr=comed --distribution=dirichlet --alpha=0.8 --attack_rounds=200
 # done
 
-srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=200 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=40 --delta_attack=30 --aggr=comed --distribution=dirichlet --alpha=0.8 --attack_rounds=200
-srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=200 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=40 --delta_attack=40 --aggr=comed --distribution=dirichlet --alpha=0.8 --attack_rounds=200
+#srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=200 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=40 --delta_attack=30 --aggr=comed --distribution=dirichlet --alpha=0.8 --attack_rounds=200
+srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=200 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=60 --delta_attack=20 --aggr=comed --distribution=dirichlet --alpha=0.8 --attack_rounds=200
 srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=200 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=60 --delta_attack=60 --aggr=comed --distribution=dirichlet --alpha=0.8 --attack_rounds=200
 srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=200 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=60 --delta_attack=30 --aggr=comed --distribution=dirichlet --alpha=0.8 --attack_rounds=200
 
