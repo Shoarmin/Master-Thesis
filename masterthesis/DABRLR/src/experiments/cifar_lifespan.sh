@@ -49,10 +49,10 @@ echo -ne "Running on node "
 hostname
 echo "Standard output:"
 
-srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=10 --rounds=1000 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=20 --delta_attack=20 --attack_rounds=20
-srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=10 --rounds=1000 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=20 --delta_attack=15 --attack_rounds=20
-srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=10 --rounds=1000 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=20 --delta_attack=10 --attack_rounds=20
-srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=10 --rounds=1000 --num_corrupt=0 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=20 --delta_attack=5 --attack_rounds=20
+srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=10 --rounds=1000 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=20 --delta_attack=20 --attack_rounds=50
+srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=10 --rounds=1000 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=20 --delta_attack=15 --attack_rounds=50
+srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=10 --rounds=1000 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=20 --delta_attack=10 --attack_rounds=50
+srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=10 --rounds=1000 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=20 --delta_attack=5 --attack_rounds=50
 
 # Measure GPU usage of your job (result)
 /usr/bin/nvidia-smi --query-accounted-apps='gpu_utilization,mem_utilization,max_memory_usage,time' --format='csv' | /usr/bin/grep -v -F "$previous"
