@@ -214,7 +214,7 @@ def get_loss_n_accuracy(model, criterion, data_loader, args, num_classes=10):
     """ Returns the loss and total accuracy, per class accuracy on the supplied data loader """
     if args.data == 'tinyimage':
         num_classes = 200
-    elif args.data == 'çifar100':
+    elif args.data == 'cifar100':
         num_classes = 100
     
     # disable BN stats during inference
