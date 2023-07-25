@@ -56,7 +56,7 @@ echo "Standard output:"
 #srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --pattern=sig --delta_val=60 --delta_attack=60 --aggr=krum --distribution=dirichlet --alpha=0.8
 #srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --pattern=sig --delta_val=60 --delta_attack=20 --aggr=krum --distribution=dirichlet --alpha=0.8
 srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --pattern=sig --delta_val=30 --delta_attack=30 --aggr=krum --distribution=dirichlet --alpha=0.8
-srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --pattern=sig --delta_val=30 --delta_attack=20 --aggr=krum --distribution=dirichlet --alpha=0.8
+# srun python federated.py --data=fmnist --local_ep=2 --bs=256 --num_agents=10 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --pattern=sig --delta_val=30 --delta_attack=20 --aggr=krum --distribution=dirichlet --alpha=0.8
 
 # Measure GPU usage of your job (result)
 /usr/bin/nvidia-smi --query-accounted-apps='gpu_utilization,mem_utilization,max_memory_usage,time' --format='csv' | /usr/bin/grep -v -F "$previous"
