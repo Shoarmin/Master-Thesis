@@ -6,10 +6,10 @@
 #SBATCH --partition=general
 
 # The default Quality of Service is the 'short' QoS (maximum run time: 4 hours)
-#SBATCH --qos=medium
+#SBATCH --qos=short
 
 # The default run (wall-clock) time is 1 minute
-#SBATCH --time=4:00:00
+#SBATCH --time=2:00:00
 
 # The default number of parallel tasks per job is 1
 #SBATCH --ntasks=1
@@ -56,9 +56,9 @@ echo "Standard output:"
 #srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=10 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=20 --delta_attack=15 --aggr=krum --distribution=dirichlet --alpha=0.8
 #srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=10 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=20 --delta_attack=20 --aggr=krum --distribution=dirichlet --alpha=0.8
 srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=10 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=40 --delta_attack=20 --aggr=krum --distribution=dirichlet --alpha=0.8
+srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=10 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=40 --delta_attack=30 --aggr=krum --distribution=dirichlet --alpha=0.8
 srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=10 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=40 --delta_attack=40 --aggr=krum --distribution=dirichlet --alpha=0.8
-srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=10 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=40 --delta_attack=40 --aggr=krum --distribution=dirichlet --alpha=0.8
-srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=10 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=40 --delta_attack=20 --aggr=krum --distribution=dirichlet --alpha=0.8
+srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=10 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=40 --delta_attack=25 --aggr=krum --distribution=dirichlet --alpha=0.8
 
 # Measure GPU usage of your job (result)
 /usr/bin/nvidia-smi --query-accounted-apps='gpu_utilization,mem_utilization,max_memory_usage,time' --format='csv' | /usr/bin/grep -v -F "$previous"
