@@ -74,11 +74,9 @@ class Agent():
         #get the poisoned dataset for the attacker
         if (self.id < self.args.num_corrupt and attack and self.args.attack == 'normal') or (self.args.attack == 'dba' and self.id % self.args.num_corrupt == 0 and attack and self.id < self.args.num_corrupt): 
             dataloader = self.poison_loader
-            print("POISON LOADER")
         else:
         #use the benign datasetset for  malicious agent in non-attack round
             dataloader = self.train_loader
-            print("BENIGN LOADER")
 
         for _ in range(self.args.local_ep):
             for _, (inputs, labels) in enumerate(dataloader):

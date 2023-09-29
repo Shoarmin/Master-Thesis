@@ -23,6 +23,7 @@ import os
 import wandb
 from gradcam.utils import visualize_cam
 from gradcam import GradCAM, GradCAMpp
+import matplotlib.pyplot as plt
 
 if __name__ == '__main__':
     args = args_parser()
@@ -34,6 +35,8 @@ if __name__ == '__main__':
         project_name = f"{args.data}-{args.aggr}-{args.num_agents}-{args.pattern}-{args.norm}-{args.attack_interval}"
     elif args.explain == 1:
         project_name = "gradcam"
+    elif args.explain == 2:
+        project_name = "activation_values"
     else:
         project_name = "images_examples"
 
@@ -130,7 +133,7 @@ if __name__ == '__main__':
             utilities.trigger_visibility(args, compare_img_loader, compare_pos_img_loader)
 
         # visualize thepattern in the validation dataset
-        if args.explain >= 2:
+        if args.explain >= 3:
             if args.climg_attack == 1: 
                 examples = iter(val_set_dict[5])
             else:
@@ -275,6 +278,41 @@ if __name__ == '__main__':
             grid_image_np = grid_image.permute(1, 2, 0).cpu().numpy()
             image_to_log = wandb.Image(grid_image_np)
             wandb.log({"Grid Image": image_to_log})  
+
+    if args.explain == 2:
+        activation = {}
+
+        def get_activation(name):
+            def hook(model, input, output):
+                activation[name] = output.detach()
+            return hook
+        
+        global_model.fc2.register_forward_hook(get_activation('fc2'))
+
+        examples = iter(poisoned_val_loader)
+        example_data, example_targets_pos = next(examples)
+
+        output = global_model(example_data)
+
+        print(activation['fc2'])
+        print(len(activation['fc2']))
+
+        img_grid = torchvision.utils.make_grid(example_data)
+        grid_image_np = img_grid.permute(1, 2, 0).cpu().numpy()
+        image_to_log = wandb.Image(grid_image_np)
+        wandb.log({"Grid Image": image_to_log})    
+        
+        flattened_list = []
+        for value in activation.values():
+            flattened_list.extend(value)
+        flat_list = [item.item() for tensor in flattened_list for item in tensor]
+
+        plt.hist(flat_list, bins=np.arange(min(flat_list), max(flat_list) + 1), alpha=0.7, rwidth=0.85, color='blue')
+        plt.xlabel('Values')
+        plt.ylabel('Frequency')
+        plt.title('Histogram of Values')
+
+        wandb.log({"histogram": wandb.Image(plt)})
 
     print('Training has finished!')
     wandb.finish()
