@@ -294,6 +294,7 @@ if __name__ == '__main__':
 
         examples = iter(poisoned_val_loader)
         example_data, example_targets_pos = next(examples)
+        example_data, example_targets_pos = example_data.to(args.device), example_targets_pos.to(args.device)
 
         output = global_model(example_data)
 
