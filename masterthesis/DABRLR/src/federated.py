@@ -287,15 +287,15 @@ if __name__ == '__main__':
                 activation[name] = output.detach()
             return hook
         
-        global_model.fc2.register_forward_hook(get_activation('fc2'))
+        if args.data == 'fmnist':
+            global_model.fc2.register_forward_hook(get_activation('fc2'))
+        else:
+            global_model.linear.register_forward_hook(get_activation('linear'))
 
         examples = iter(poisoned_val_loader)
         example_data, example_targets_pos = next(examples)
 
         output = global_model(example_data)
-
-        print(activation['fc2'])
-        print(len(activation['fc2']))
 
         img_grid = torchvision.utils.make_grid(example_data)
         grid_image_np = img_grid.permute(1, 2, 0).cpu().numpy()
