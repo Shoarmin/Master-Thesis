@@ -308,10 +308,9 @@ if __name__ == '__main__':
             flattened_list.extend(value)
         flat_list = [item.item() for tensor in flattened_list for item in tensor]
 
-        plt.hist(flat_list, bins=np.arange(min(flat_list), max(flat_list) + 1), alpha=0.7, rwidth=0.85, color='blue')
-        plt.xlabel('Values')
+        plt.hist(flat_list, bins=np.arange(-20, 70), alpha=0.7, rwidth=0.85, color='blue')
+        plt.xlabel('Activation value')
         plt.ylabel('Frequency')
-        plt.title('Histogram of Values')
 
         wandb.log({"histogram": wandb.Image(plt)})
 
