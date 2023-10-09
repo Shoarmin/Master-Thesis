@@ -75,6 +75,9 @@ def args_parser():
     parser.add_argument('--top_frac', type=int, default=100, 
                         help="compare fraction of signs")
     
+    parser.add_argument('--topk', type=float, default=0.8, 
+                        help="topk percentage of sparsefed")
+    
     parser.add_argument('--snap', type=int, default=1,
                         help="do inference in every num of snap rounds")
        
