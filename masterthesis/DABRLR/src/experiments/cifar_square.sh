@@ -50,8 +50,8 @@ echo "Standard output:"
 #         srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=10 --rounds=60 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=square --delta_val=$i --delta_attack=$i
 # done
 
-srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=10 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --pattern=square --delta_val=255 --delta_attack=40
-srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=10 --rounds=100 --num_corrupt=1 --poison_frac=0.5 --pattern=square --delta_val=80 --delta_attack=40
+srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=20 --rounds=80 --num_corrupt=1 --poison_frac=0.5 --pattern=square --delta_val=255 --delta_attack=80
+srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=20 --rounds=80 --num_corrupt=1 --poison_frac=0.5 --pattern=square --delta_val=255 --delta_attack=40
 
 # Measure GPU usage of your job (result)
 /usr/bin/nvidia-smi --query-accounted-apps='gpu_utilization,mem_utilization,max_memory_usage,time' --format='csv' | /usr/bin/grep -v -F "$previous"

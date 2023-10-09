@@ -9,7 +9,7 @@
 #SBATCH --qos=short
 
 # The default run (wall-clock) time is 1 minute
-#SBATCH --time=2:00:00
+#SBATCH --time=1:00:00
 
 # The default number of parallel tasks per job is 1
 #SBATCH --ntasks=1
@@ -50,10 +50,10 @@ echo "Standard output:"
 #        srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=10 --rounds=60 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=15 --delta_attack=$i
 #done
 
-srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=20 --rounds=80 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=square --delta_val=255 --delta_attack=20
-srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=20 --rounds=80 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=square --delta_val=255 --delta_attack=100
-srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=20 --rounds=80 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=square --delta_val=255 --delta_attack=200
-srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=20 --rounds=80 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=square --delta_val=255 --delta_attack=255
+srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=10 --rounds=80 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=100 --delta_attack=10
+srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=10 --rounds=80 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=sig --delta_val=100 --delta_attack=10
+#srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=20 --rounds=80 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=square --delta_val=255 --delta_attack=200
+#srun python federated.py --data=cifar10 --local_ep=2 --bs=256 --num_agents=20 --rounds=80 --num_corrupt=1 --poison_frac=0.5 --climg_attack=0 --pattern=square --delta_val=255 --delta_attack=255
 
 # Measure GPU usage of your job (result)
 /usr/bin/nvidia-smi --query-accounted-apps='gpu_utilization,mem_utilization,max_memory_usage,time' --format='csv' | /usr/bin/grep -v -F "$previous"
