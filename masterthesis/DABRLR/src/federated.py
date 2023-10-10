@@ -65,6 +65,7 @@ if __name__ == '__main__':
         "norm": args.norm,
         "attack_interval": args.attack_interval,
         "distribution": args.distribution,
+        "topk": args.topk, 
         }
     )
 
