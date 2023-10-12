@@ -102,22 +102,18 @@ class Aggregation():
         return  dummy_data, dummy_label
     
     def sparsefed(self, agent_update_dict, topk):
+        #switch topk to before aggregation
         sm_updates = 0
         for _id, update in agent_update_dict.items():
+            num_elements = int(topk * len(update))
+            top_k_values, top_k_indices = torch.topk(update, num_elements)
+            selected_mask = torch.zeros_like(update)
+            selected_mask[top_k_indices] = 1
+            print(update)
+            update = selected_mask * update
             sm_updates += update
         update = sm_updates / len(agent_update_dict)
-
-        num_elements = int(topk * len(update))
-        print(num_elements)
-
-        top_k_values, top_k_indices = torch.topk(update, num_elements)
-
-        selected_mask = torch.zeros_like(update)
-        selected_mask[top_k_indices] = 1
-        update = selected_mask * update
-        # print(update)
         return update
-        
     
     def krum(self, agent_updates_dict, rnd):
         #assume a maximum of half of the agents is malicious

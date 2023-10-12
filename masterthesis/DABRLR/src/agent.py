@@ -83,7 +83,7 @@ class Agent():
                 optimizer.zero_grad()
                 inputs, labels = inputs.to(device=self.args.device, non_blocking=True), labels.to(device=self.args.device, non_blocking=True)
                 outputs = global_model(inputs)
-                minibatch_loss = criterion(outputs, labels)
+                minibatch_loss = criterion(outputs, labels) # + difference between x and x_p
                 minibatch_loss.backward()
 
                 # to prevent exploding gradients
