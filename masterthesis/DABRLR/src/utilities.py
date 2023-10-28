@@ -244,13 +244,6 @@ def get_loss_n_accuracy(model, criterion, data_loader, args, num_classes=10):
     per_class_accuracy = confusion_matrix.diag() / confusion_matrix.sum(1)
     return avg_loss, (accuracy, per_class_accuracy)
 
-def calculate_psnr(image1, image2):
-    mse = F.mse_loss(image1, image2)  # Calculate Mean Squared Error (MSE)
-    if(mse == 0):  # MSE is zero means no noise is present in the signal and therefore PSNR have no importance.
-        return 100
-    psnr = 20 * torch.log10(255 / torch.sqrt(mse))  # Calculate PSNR
-    return psnr
-
 def trigger_visibility(args, compare_img_loader, compare_pos_img_loader):
     #print out the psnr value for all the clean images and all the poisoned images
     psnr = piqa.PSNR()
@@ -259,9 +252,12 @@ def trigger_visibility(args, compare_img_loader, compare_pos_img_loader):
     clean_images, _ = next(clean_images)
     pos_images, _ = next(pos_images)
     wandb.log({'psnr': psnr(clean_images, pos_images)}) 
-    return
+    return psnr(clean_images, pos_images)
 
 def print_distances(agents_update_dict, rnd, num_corrupt): #get the euclidian and cosine distances of the malicious and benign updates
+    if num_corrupt == len(agents_update_dict):
+        return
+
     #get all updates into one tensor
     tensor_list = []
     for agent in range(len(agents_update_dict)):

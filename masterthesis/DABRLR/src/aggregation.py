@@ -62,7 +62,7 @@ class Aggregation():
             aggregated_updates.add_(torch.normal(mean=0, std=self.args.noise*self.args.clip, size=(self.n_params,)).to(self.args.device))
 
         cur_global_params = parameters_to_vector(global_model.parameters())
-        new_global_params =  (cur_global_params + lr_vector*aggregated_updates).float() 
+        new_global_params = (cur_global_params + lr_vector*aggregated_updates).float() 
         vector_to_parameters(new_global_params, global_model.parameters())
         l2_mal, l2_benign = self.plot_norms(agent_updates_dict, cur_round)
 
@@ -252,6 +252,9 @@ class Aggregation():
                   
     def plot_norms(self, agent_updates_dict, cur_round, norm=2):
         """ Plotting average norm information for honest/corrupt updates """
+        if self.args.num_corrupt == self.args.num_agents:
+            return 0, 0
+        
         honest_updates, corrupt_updates = [], []
         for key in agent_updates_dict.keys():
             if key < self.args.num_corrupt:

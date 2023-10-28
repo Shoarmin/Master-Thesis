@@ -10,10 +10,12 @@ from torch.autograd import grad
 import torch.nn.functional as F
 from utils.text_load import *
 import torchvision
+import piqa
+import wandb
 
 
 class Agent():
-    def __init__(self, id, args, train_dataset=None, data_idxs=None):
+    def __init__(self, id, args, train_dataset=None, data_idxs=None, baseline_set=None, idxs=None):
         self.id = id
         self.args = args
 
@@ -44,7 +46,7 @@ class Agent():
         if self.id < args.num_corrupt:
             print("poison loader set")
             self.poison_loader = DataLoader(self.poison_dataset, batch_size=self.args.bs, shuffle=True, num_workers=args.num_workers, pin_memory=False)
-        
+
         # size of local dataset
         self.n_data = len(self.train_dataset)
 
@@ -56,23 +58,22 @@ class Agent():
             return False
 
     def local_train(self, global_model, criterion, rnd):
-        #choose normal training if attack mode is normal, attack is benign or current round is no attack round
-        if self.args.attack in ['normal', 'dba'] or self.id >= self.args.num_corrupt or self.is_attack_round(rnd) == False:
+        #choose normal training if attack mode is normal, attack is benign or current round is no attack round    
+        if self.args.attack in ['normal', 'dba', 'optimize'] or self.id >= self.args.num_corrupt or self.is_attack_round(rnd) == False:
             return self.local_train_normal_attack(global_model, criterion, self.is_attack_round(rnd))
             
         #choose neurotoxin if the attack mode is neuro and the current round is an attack round
         elif self.args.attack == 'neuro' and self.is_attack_round(rnd) and self.args.data != 'reddit':
             return self.neurotrain(global_model, criterion)
-            
+
     def local_train_normal_attack(self, global_model, criterion, attack):
         """ Do a local training over the received global model, return the update """
-        
         initial_global_model_params = parameters_to_vector(global_model.parameters()).detach()
         global_model.train()       
         optimizer = torch.optim.SGD(global_model.parameters(), lr=self.args.client_lr, momentum=self.args.client_moment)
 
         #get the poisoned dataset for the attacker
-        if (self.id < self.args.num_corrupt and attack and self.args.attack == 'normal') or (self.args.attack == 'dba' and self.id % self.args.num_corrupt == 0 and attack and self.id < self.args.num_corrupt): 
+        if (self.id < self.args.num_corrupt and attack and self.args.attack in ['normal', 'optimize']) or (self.args.attack == 'dba' and self.id % self.args.num_corrupt == 0 and attack and self.id < self.args.num_corrupt): 
             dataloader = self.poison_loader
         else:
         #use the benign datasetset for  malicious agent in non-attack round
@@ -83,13 +84,13 @@ class Agent():
                 optimizer.zero_grad()
                 inputs, labels = inputs.to(device=self.args.device, non_blocking=True), labels.to(device=self.args.device, non_blocking=True)
                 outputs = global_model(inputs)
-                minibatch_loss = criterion(outputs, labels) # + difference between x and x_p
+                minibatch_loss = criterion(outputs, labels)
                 minibatch_loss.backward()
 
                 # to prevent exploding gradients
                 nn.utils.clip_grad_norm_(global_model.parameters(), 10) 
                 optimizer.step()
-      
+
         with torch.no_grad():
             update = parameters_to_vector(global_model.parameters()).double() - initial_global_model_params
             return update

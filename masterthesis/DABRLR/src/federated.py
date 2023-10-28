@@ -32,7 +32,7 @@ if __name__ == '__main__':
     warnings.filterwarnings("ignore")
     torch.manual_seed(2809)
     if args.explain == 0:
-        project_name = f"{args.data}-{args.aggr}-{args.num_agents}-{args.pattern}-{args.norm}-{args.attack_interval}"
+        project_name = f"test"#{args.data}-{args.aggr}-{args.num_agents}-{args.pattern}-{args.norm}-{args.attack_interval}"
     elif args.explain == 1:
         project_name = "gradcam"
     elif args.explain == 2:
@@ -144,8 +144,7 @@ if __name__ == '__main__':
             grid_image_np = img_grid.permute(1, 2, 0).cpu().numpy()
             image_to_log = wandb.Image(grid_image_np)
             wandb.log({"Grid Image": image_to_log})           
-            exit()
-    
+
     #train_dataset[user] = 80.000 users, num of posts, post, word of post 
     #val_dataset[post] =  14208 posts, 10 words per post (batch size), word 
     #poisoned_traindata[posts] = 1280 posts, bs size words, word, every bptt poisoned based on poison fraction
@@ -156,164 +155,186 @@ if __name__ == '__main__':
         print("Data loaded & poisoned")
         print(f"The poison sentence: {args.poison_sentence}")
 
-    # initialize a model, and the agents    
-    global_model = models.get_model(args.data).to(args.device)  
-
-    #if there is a pretrained model load it
-    if args.load_model==True:
-        if torch.cuda.is_available():
-            loaded_params = torch.load('saved_models/final_model_tinyimage_round_20_.pt')
-        else:
-            loaded_params = torch.load('saved_models/final_model_tinyimage_round_20_.pt', map_location='cpu')
-        #global_model.load_state_dict(loaded_params['state_dict'])
-        args.rounds=loaded_params['epoch']
-    agents, agent_data_sizes = [], {}
-
-    for _id in range(0, args.num_agents):
-        if args.data != 'reddit': 
-            if args.data == 'fedemnist': 
-                agent = Agent(_id, args) #CGECK IF THIS LINE IS REDUNDANT OR NOT
-            else:
-                agent = Agent(_id, args, train_dataset, user_groups[_id])
-            agents.append(agent) 
-            agent_data_sizes[_id] = agent.n_data
-        else:
-            agent = Agent(_id, args)
-            agents.append(agent)
-    print("data shared among agents")
+    def training(args):
+        # initialize a model, and the agents    
+        global_model = models.get_model(args.data).to(args.device)  
+        agents, agent_data_sizes = [], {}
+        image_loss_set = copy.deepcopy(compare_set)
+        utilities.poison_dataset(image_loss_set.dataset, args, idxs, poison_all=True, trainset=1)
+        compare_pos_img_loader = DataLoader(image_loss_set, batch_size=len(poisoned_train_set.idxs), shuffle=False, num_workers=args.num_workers, pin_memory=False)
         
-    # aggregation server and the loss function
-    n_model_params = len(parameters_to_vector(global_model.parameters()))
-    if args.data != 'reddit':
-        aggregator = Aggregation(agent_data_sizes, n_model_params, args, poisoned_val_loader) 
-    else:
-        aggregator = Aggregation(agent_data_sizes, n_model_params, args) 
-
-    criterion = nn.CrossEntropyLoss().to(args.device)
-    update_list = []
-
-    # training loop
-    for rnd in tqdm(range(1, args.rounds+1)):
-        print(f"------------------------ ROUND {rnd} -------------------------")
-        rnd_global_params = parameters_to_vector(global_model.parameters()).detach()
-        agent_updates_dict = {}
-        update_list.append(rnd_global_params)
-    
-        # choose an agent to train on
-        for agent_id in np.random.choice(args.num_agents, math.floor(args.num_agents*args.agent_frac), replace=False):
-            if args.data != 'reddit':
-                update = agents[agent_id].local_train(global_model, criterion, rnd)
-            else:
-                # for reddit sample a number between 0 and 80000 (len dataset) and pass that to the agent to train on
-                sampling = random.sample(range(len(text_data['train_data'])), args.num_agents)
-                if args.attack == 'neuro' and agents[agent_id].is_attack_round(rnd):
-                    update = agents[agent_id].reddit_neuro_train(global_model, criterion, text_data, sampling)
-                update = agents[agent_id].reddit_local_train(global_model, criterion, text_data, sampling)
-            agent_updates_dict[agent_id] = update
-            # make sure every agent gets same copy of the global model in a round (i.e., they don't affect each other's training)
-            vector_to_parameters(copy.deepcopy(rnd_global_params), global_model.parameters())
-        # aggregate params obtained by agents and update the global params
-        l2_mal, l2_benign = aggregator.aggregate_updates(global_model, agent_updates_dict, rnd)
-        
-        #inference in every args.snap rounds
-        if rnd % args.snap == 0:
-                
-            #Get the validation loss and loss per class
+        for _id in range(0, args.num_agents):
             if args.data != 'reddit': 
-                utilities.print_distances(agent_updates_dict, rnd, args.num_corrupt)
-                val_loss, (val_acc, val_per_class_acc) = utilities.get_loss_n_accuracy(global_model, criterion, val_loader, args)
-
-                wandb.log({'avg_l2_norm': (l2_benign)}, step=rnd)
-                wandb.log({'malicious_norm': (l2_mal)}, step=rnd)
-                wandb.log({'Validation_Loss': val_loss}, step=rnd)
-                wandb.log({'Validation_Accuracy': val_acc}, step=rnd)
-                print(f'| Val_Loss/Val_Acc: {val_loss:.3f} / {val_acc:.3f} |')
-                print(f'| Val_Per_Class_Acc: {val_per_class_acc} ')
-
-                #Get the poison loss and poison accuracy depending on clean image attack or not
-                if args.climg_attack == 0:
-                    poison_loss, (poison_acc, _) = utilities.get_loss_n_accuracy(global_model, criterion, poisoned_val_loader, args)
-                    poison_loss_training, (poison_acc_training, _) = utilities.get_loss_n_accuracy(global_model, criterion, poisoned_train_loader, args)
-
-                    wandb.log({'Poison_Base_Class_Accuracy': val_per_class_acc[args.base_class]}, step=rnd)
-                    wandb.log({'Poison_Val_Accuracy': poison_acc}, step=rnd)
-                    wandb.log({'Poison_Val_Loss': poison_loss}, step=rnd)
-
-                    wandb.log({'Poison_Training_Loss': poison_loss_training}, step=rnd)
-                    wandb.log({'Poison_Training_Acc': poison_acc_training}, step=rnd)
-
-                    print(f'| Poison Loss/Poison Acc: {poison_loss:.3f} / {poison_acc:.3f} |')
-                    
+                if args.data == 'fedemnist': 
+                    agent = Agent(_id, args) #CGECK IF THIS LINE IS REDUNDANT OR NOT
                 else:
-                    for key in val_set_dict.keys():
-                        poison_loss, (poison_acc, _) = utilities.get_loss_n_accuracy(global_model, criterion, val_set_dict[key], args)
-                        wandb.log('Poison/Base_Class_Accuracy', val_per_class_acc[args.base_class])
-                        wandb.log('Poison/Poison_Accuracy', poison_acc)
-                        wandb.log('Poison/Poison_Loss', poison_loss)
-                        print(f'| Poison Loss/Poison Acc for key {key}: {poison_loss:.3f} / {poison_acc:.3f} |')
-
+                    agent = Agent(_id, args, train_dataset, user_groups[_id])
+                agents.append(agent) 
+                agent_data_sizes[_id] = agent.n_data
             else:
-                #Get the validation loss and loss per class for the reddit dataset
-                val_loss, val_acc = utilities.test_reddit_normal(args, text_data, global_model)
-                print(f'| Val_Loss/Val_Acc: {val_loss:.3f} / {val_acc:.3f} |')
-                
-                #Get the poison loss and poison accuracy
-                poison_loss, poison_acc = utilities.test_reddit_poison(args, text_data, global_model)
-                print(f'| Poison_Loss/Poison_Acc: {poison_loss:.3f} / {poison_acc:.3f} |')
-
-    if args.save_state and args.data in ['reddit', 'cifar10', 'tinyimage']:
-        torch.save(global_model.state_dict(), os.path.join('saved_models/', 'final_model_{data}_round_{rounds}_.pt'.format(data = args.data, rounds = args.rounds)))
-
-    if args.data == 'cifar10' and args.explain == 1:
-        global_model.to('cpu')
-        images = []
-        examples = iter(poisoned_val_loader)
-        example_data, example_targets = next(examples)
-        gradcam_pp = GradCAMpp(global_model, global_model.layer4)
-
-        for i in range(4):
-            cam_pp, _ = gradcam_pp(example_data[i].unsqueeze(0))
-            heatmap_pp, result_pp = visualize_cam(cam_pp, example_data[i])
-            images.extend([example_data[i].cpu(), heatmap_pp, result_pp])
-            grid_image = torchvision.utils.make_grid(images, nrow=3)
-            grid_image_np = grid_image.permute(1, 2, 0).cpu().numpy()
-            image_to_log = wandb.Image(grid_image_np)
-            wandb.log({"Grid Image": image_to_log})  
-
-    if args.explain == 2:
-        activation = {}
-
-        def get_activation(name):
-            def hook(model, input, output):
-                activation[name] = output.detach()
-            return hook
-        
-        if args.data == 'fmnist':
-            global_model.fc2.register_forward_hook(get_activation('fc2'))
+                agent = Agent(_id, args)
+                agents.append(agent)
+        print("data shared among agents")
+            
+        # aggregation server and the loss function
+        n_model_params = len(parameters_to_vector(global_model.parameters()))
+        if args.data != 'reddit':
+            aggregator = Aggregation(agent_data_sizes, n_model_params, args, poisoned_val_loader) 
         else:
-            global_model.linear.register_forward_hook(get_activation('linear'))
+            aggregator = Aggregation(agent_data_sizes, n_model_params, args) 
 
-        examples = iter(poisoned_val_loader)
-        example_data, example_targets_pos = next(examples)
-        example_data, example_targets_pos = example_data.to(args.device), example_targets_pos.to(args.device)
+        criterion = nn.CrossEntropyLoss().to(args.device)
+        update_list = []
 
-        output = global_model(example_data)
-
-        img_grid = torchvision.utils.make_grid(example_data)
-        grid_image_np = img_grid.permute(1, 2, 0).cpu().numpy()
-        image_to_log = wandb.Image(grid_image_np)
-        wandb.log({"Grid Image": image_to_log})    
+        # training loop
+        for rnd in tqdm(range(1, args.rounds+1)):
+            print(f"------------------------ ROUND {rnd} -------------------------")
+            rnd_global_params = parameters_to_vector(global_model.parameters()).detach()
+            agent_updates_dict = {}
+            update_list.append(rnd_global_params)
         
-        flattened_list = []
-        for value in activation.values():
-            flattened_list.extend(value)
-        flat_list = [item.item() for tensor in flattened_list for item in tensor]
+            # choose an agent to train on
+            for agent_id in np.random.choice(args.num_agents, math.floor(args.num_agents*args.agent_frac), replace=False):
+                if args.data != 'reddit':
+                    update = agents[agent_id].local_train(global_model, criterion, rnd)
+                else:
+                    # for reddit sample a number between 0 and 80000 (len dataset) and pass that to the agent to train on
+                    sampling = random.sample(range(len(text_data['train_data'])), args.num_agents)
+                    if args.attack == 'neuro' and agents[agent_id].is_attack_round(rnd):
+                        update = agents[agent_id].reddit_neuro_train(global_model, criterion, text_data, sampling)
+                    update = agents[agent_id].reddit_local_train(global_model, criterion, text_data, sampling)
+                agent_updates_dict[agent_id] = update
+                # make sure every agent gets same copy of the global model in a round (i.e., they don't affect each other's training)
+                vector_to_parameters(copy.deepcopy(rnd_global_params), global_model.parameters())
+            # aggregate params obtained by agents and update the global params
+            l2_mal, l2_benign = aggregator.aggregate_updates(global_model, agent_updates_dict, rnd)
+            
+            #inference in every args.snap rounds
+            if rnd % args.snap == 0:
+                    
+                #Get the validation loss and loss per class
+                if args.data != 'reddit': 
+                    utilities.print_distances(agent_updates_dict, rnd, args.num_corrupt)
+                    val_loss, (val_acc, val_per_class_acc) = utilities.get_loss_n_accuracy(global_model, criterion, val_loader, args)
 
-        plt.hist(flat_list, bins=np.arange(-20, 70), alpha=0.7, rwidth=0.85, color='blue')
-        plt.xlabel('Activation value')
-        plt.ylabel('Frequency')
+                    wandb.log({'avg_l2_norm': (l2_benign)}, step=rnd)
+                    wandb.log({'malicious_norm': (l2_mal)}, step=rnd)
+                    wandb.log({'Validation_Loss': val_loss}, step=rnd)
+                    wandb.log({'Validation_Accuracy': val_acc}, step=rnd)
+                    print(f'| Val_Loss/Val_Acc: {val_loss:.3f} / {val_acc:.3f} |')
+                    print(f'| Val_Per_Class_Acc: {val_per_class_acc} ')
 
-        wandb.log({"histogram": wandb.Image(plt)})
+                    #Get the poison loss and poison accuracy depending on clean image attack or not
+                    if args.climg_attack == 0:
+                        poison_loss, (poison_acc, _) = utilities.get_loss_n_accuracy(global_model, criterion, poisoned_val_loader, args)
+                        poison_loss_training, (poison_acc_training, _) = utilities.get_loss_n_accuracy(global_model, criterion, poisoned_train_loader, args)
+
+                        wandb.log({'Poison_Base_Class_Accuracy': val_per_class_acc[args.base_class]}, step=rnd)
+                        wandb.log({'Poison_Val_Accuracy': poison_acc}, step=rnd)
+                        wandb.log({'Poison_Val_Loss': poison_loss}, step=rnd)
+
+                        wandb.log({'Poison_Training_Loss': poison_loss_training}, step=rnd)
+                        wandb.log({'Poison_Training_Acc': poison_acc_training}, step=rnd)
+
+                        print(f'| Poison Loss/Poison Acc: {poison_loss:.3f} / {poison_acc:.3f} |')
+                        
+                    else:
+                        for key in val_set_dict.keys():
+                            poison_loss, (poison_acc, _) = utilities.get_loss_n_accuracy(global_model, criterion, val_set_dict[key], args)
+                            wandb.log('Poison/Base_Class_Accuracy', val_per_class_acc[args.base_class])
+                            wandb.log('Poison/Poison_Accuracy', poison_acc)
+                            wandb.log('Poison/Poison_Loss', poison_loss)
+                            print(f'| Poison Loss/Poison Acc for key {key}: {poison_loss:.3f} / {poison_acc:.3f} |')
+
+                else:
+                    #Get the validation loss and loss per class for the reddit dataset
+                    val_loss, val_acc = utilities.test_reddit_normal(args, text_data, global_model)
+                    print(f'| Val_Loss/Val_Acc: {val_loss:.3f} / {val_acc:.3f} |')
+                    
+                    #Get the poison loss and poison accuracy
+                    poison_loss, poison_acc = utilities.test_reddit_poison(args, text_data, global_model)
+                    print(f'| Poison_Loss/Poison_Acc: {poison_loss:.3f} / {poison_acc:.3f} |')
+
+        if args.data == 'cifar10' and args.explain == 1:
+            global_model.to('cpu')
+            images = []
+            examples = iter(poisoned_val_loader)
+            example_data, example_targets = next(examples)
+            gradcam_pp = GradCAMpp(global_model, global_model.layer4)
+
+            for i in range(4):
+                cam_pp, _ = gradcam_pp(example_data[i].unsqueeze(0))
+                heatmap_pp, result_pp = visualize_cam(cam_pp, example_data[i])
+                images.extend([example_data[i].cpu(), heatmap_pp, result_pp])
+                grid_image = torchvision.utils.make_grid(images, nrow=3)
+                grid_image_np = grid_image.permute(1, 2, 0).cpu().numpy()
+                image_to_log = wandb.Image(grid_image_np)
+                wandb.log({"Grid Image": image_to_log})  
+
+        if args.explain == 2:
+            activation = {}
+
+            def get_activation(name):
+                def hook(model, input, output):
+                    activation[name] = output.detach()
+                return hook
+            
+            if args.data == 'fmnist':
+                global_model.fc2.register_forward_hook(get_activation('fc2'))
+            else:
+                global_model.linear.register_forward_hook(get_activation('linear'))
+
+            examples = iter(poisoned_val_loader)
+            example_data, example_targets_pos = next(examples)
+            example_data, example_targets_pos = example_data.to(args.device), example_targets_pos.to(args.device)
+
+            output = global_model(example_data)
+
+            img_grid = torchvision.utils.make_grid(example_data)
+            grid_image_np = img_grid.permute(1, 2, 0).cpu().numpy()
+            image_to_log = wandb.Image(grid_image_np)
+            wandb.log({"Grid Image": image_to_log})    
+            
+            flattened_list = []
+            for value in activation.values():
+                flattened_list.extend(value)
+            flat_list = [item.item() for tensor in flattened_list for item in tensor]
+
+            plt.hist(flat_list, bins=np.arange(-20, 70), alpha=0.7, rwidth=0.85, color='blue')
+            plt.xlabel('Activation value')
+            plt.ylabel('Frequency')
+
+            wandb.log({"histogram": wandb.Image(plt)})
+        
+        print(f'poison_loss: {poison_loss} - val_loss: {val_loss} - trigger loss: {1 - (utilities.trigger_visibility(args, compare_img_loader, compare_pos_img_loader) / 80)}')
+        print(f'total = {poison_loss + val_loss + 1 - (utilities.trigger_visibility(args, compare_img_loader, compare_pos_img_loader) / 80)}')
+        return poison_loss + val_loss + 1 - (utilities.trigger_visibility(args, compare_img_loader, compare_pos_img_loader) / 80)
+    
+    if args.attack == 'optimize':
+        optimization_args = copy.deepcopy(args)
+        optimization_args.num_agents = 1
+        optimization_args.num_corrupt = 1
+        optimization_args.rounds = 10
+        optimization_args.poison_frac = 0.01
+        validation_dict = {}
+        for val in range(args.delta_val):
+            optimization_args.delta_attack = val
+            print(f'optimize {optimization_args.delta_attack}')
+            loss = training(optimization_args)
+            validation_dict[val] = loss
+
+        min_loss = float('inf')
+        min_index = None
+        print(validation_dict)
+        # Iterate through the dictionary items
+        for key, loss in validation_dict.items():
+            if loss < min_loss:
+                min_loss = loss  # Update the minimum value
+                min_index = key     # Update the corresponding index (key)
+        args.delta_attack = min_index
+        print(args.delta_attack)
+
+    training(args)
 
     print('Training has finished!')
     wandb.finish()
