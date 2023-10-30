@@ -141,5 +141,8 @@ def args_parser():
     parser.add_argument('--attack_interval', type=int, default=1,
                 help="Fixed-frequency attack: have a poisoned agent participate in every interval round")
     
+    parser.add_argument('--metric', type=str, default='psnr',
+                help="choose visual similarity metric (psnr, ssim, lpips)")
+    
     args = parser.parse_args()
     return args

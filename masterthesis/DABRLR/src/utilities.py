@@ -246,13 +246,29 @@ def get_loss_n_accuracy(model, criterion, data_loader, args, num_classes=10):
 
 def trigger_visibility(args, compare_img_loader, compare_pos_img_loader):
     #print out the psnr value for all the clean images and all the poisoned images
-    psnr = piqa.PSNR()
+    if args.metric == 'psnr':
+        metric = piqa.PSNR() 
+    elif args.metric == 'ssim':
+        metric = piqa.SSIM()
+    elif args.metric == 'lpips':
+        metric = piqa.LPIPS()
     clean_images = iter(compare_img_loader)
     pos_images = iter(compare_pos_img_loader)
     clean_images, _ = next(clean_images)
     pos_images, _ = next(pos_images)
-    wandb.log({'psnr': psnr(clean_images, pos_images)}) 
-    return psnr(clean_images, pos_images)
+    wandb.log({f'{args.metric}': metric(clean_images, pos_images)}) 
+    return metric(clean_images, pos_images)
+
+def loss_calculator(args, poison_loss, val_loss, compare_img_loader, compare_pos_img_loader):
+    if args.metric == 'psnr':
+        visual_loss = 1 - (trigger_visibility(args, compare_img_loader, compare_pos_img_loader) / 80) * 5
+    elif args.metric == 'ssim':
+        visual_loss = 1 - (trigger_visibility(args, compare_img_loader, compare_pos_img_loader) * 8)
+    else:
+        visual_loss = trigger_visibility(args, compare_img_loader, compare_pos_img_loader) * 24
+    print(f'poison_loss: {poison_loss} - val_loss: {val_loss} - visual loss: {visual_loss}')
+    print(f'total loss: {poison_loss + (val_loss / 2) + visual_loss}')
+    return poison_loss + (val_loss / 2) + visual_loss
 
 def print_distances(agents_update_dict, rnd, num_corrupt): #get the euclidian and cosine distances of the malicious and benign updates
     if num_corrupt == len(agents_update_dict):

@@ -66,6 +66,7 @@ if __name__ == '__main__':
         "attack_interval": args.attack_interval,
         "distribution": args.distribution,
         "topk": args.topk, 
+        "metric": args.metric,
         }
     )
 
@@ -306,9 +307,7 @@ if __name__ == '__main__':
 
             wandb.log({"histogram": wandb.Image(plt)})
         
-        print(f'poison_loss: {poison_loss} - val_loss: {val_loss} - trigger loss: {1 - (utilities.trigger_visibility(args, compare_img_loader, compare_pos_img_loader) / 80)}')
-        print(f'total = {poison_loss + val_loss + 1 - (utilities.trigger_visibility(args, compare_img_loader, compare_pos_img_loader) / 80)}')
-        return poison_loss + val_loss + 1 - (utilities.trigger_visibility(args, compare_img_loader, compare_pos_img_loader) / 80)
+        return utilities.loss_calculator(args, poison_loss, val_loss, compare_img_loader, compare_pos_img_loader)
     
     if args.attack == 'optimize':
         optimization_args = copy.deepcopy(args)
