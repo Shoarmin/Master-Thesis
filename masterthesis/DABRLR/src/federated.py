@@ -313,7 +313,7 @@ if __name__ == '__main__':
         optimization_args = copy.deepcopy(args)
         optimization_args.num_agents = 1
         optimization_args.num_corrupt = 1
-        optimization_args.rounds = 10
+        optimization_args.rounds = 20
         optimization_args.poison_frac = 0.01
         validation_dict = {}
         for val in range(args.delta_val):
