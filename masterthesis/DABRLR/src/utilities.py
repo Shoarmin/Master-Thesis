@@ -266,7 +266,7 @@ def loss_calculator(args, poison_loss, val_loss, compare_img_loader, compare_pos
         visual_loss = 1 - (trigger_visibility(args, compare_img_loader, compare_pos_img_loader) * 8)
     else:
         visual_loss = trigger_visibility(args, compare_img_loader, compare_pos_img_loader) * 24
-    print(f'poison_loss: {poison_loss} - val_loss: {val_loss} - visual loss: {visual_loss}')
+    print(f'poison_loss: {poison_loss} + val_loss: {val_loss} + visual loss: {visual_loss}')
     print(f'total loss: {poison_loss + (val_loss / 2) + visual_loss}')
     return poison_loss + (val_loss / 2) + visual_loss
 
