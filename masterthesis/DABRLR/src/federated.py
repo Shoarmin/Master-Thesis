@@ -314,7 +314,7 @@ if __name__ == '__main__':
         optimization_args.num_agents = 1
         optimization_args.num_corrupt = 1
         optimization_args.rounds = 20
-        optimization_args.poison_frac = 0.02
+        optimization_args.poison_frac = 0.05
         validation_dict = {}
         for val in range(args.delta_val):
             optimization_args.delta_attack = val
