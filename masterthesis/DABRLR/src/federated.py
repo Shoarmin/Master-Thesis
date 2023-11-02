@@ -135,17 +135,16 @@ if __name__ == '__main__':
             utilities.trigger_visibility(args, compare_img_loader, compare_pos_img_loader)
         # visualize thepattern in the validation dataset
         if args.explain >= 3:
-                    if args.climg_attack == 1: 
-                        examples = iter(val_set_dict[5])
-                    else:
-                        examples = iter(poisoned_val_loader) #Change to poisoned_train_loader to see the images trained on
-                    example_data, example_targets = next(examples)
-                    img_grid = torchvision.utils.make_grid(example_data)
-                    grid_image_np = img_grid.permute(1, 2, 0).cpu().numpy()
-                    image_to_log = wandb.Image(grid_image_np)
-                    wandb.log({"Grid Image": image_to_log})   
-
-        
+            if args.climg_attack == 1: 
+                examples = iter(val_set_dict[5])
+            else:
+                examples = iter(compare_pos_img_loader) #Change to poisoned_train_loader to see the images trained on
+            example_data, example_targets = next(examples)
+            img_grid = torchvision.utils.make_grid(example_data)
+            grid_image_np = img_grid.permute(1, 2, 0).cpu().numpy()
+            image_to_log = wandb.Image(grid_image_np)
+            wandb.log({"Grid Image": image_to_log})   
+            exit()
 
     #train_dataset[user] = 80.000 users, num of posts, post, word of post 
     #val_dataset[post] =  14208 posts, 10 words per post (batch size), word 
@@ -317,7 +316,7 @@ if __name__ == '__main__':
         optimization_args.rounds = 20
         optimization_args.poison_frac = 0.03 
         validation_dict = {}
-        if args.pattern <= 75:
+        if args.delta_val <= 75:
             step = 1
         else:
             step = 5
