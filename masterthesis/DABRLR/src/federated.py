@@ -138,7 +138,7 @@ if __name__ == '__main__':
             if args.climg_attack == 1: 
                 examples = iter(val_set_dict[5])
             else:
-                examples = iter(compare_pos_img_loader) #Change to poisoned_train_loader to see the images trained on
+                examples = iter(val_loader) #Change to poisoned_train_loader to see the images trained on
             example_data, example_targets = next(examples)
             img_grid = torchvision.utils.make_grid(example_data)
             grid_image_np = img_grid.permute(1, 2, 0).cpu().numpy()
