@@ -40,44 +40,42 @@ if __name__ == '__main__':
     else:
         project_name = "images_examples"
 
-    # wandb.init(
-    #     project = project_name, 
-    #     name = f"dv: {args.delta_val}, da: {args.delta_attack}, f: {args.frequency}, ai: {args.attack_interval}",
-    #     config={
-    #     "learning_rate": args.client_lr,
-    #     "dataset": args.data,
-    #     "total_agents": args.num_agents,
-    #     "number_corrupt": args.num_corrupt,
-    #     "rounds": args.rounds,
-    #     "aggragator": args.aggr,
-    #     "local_epoch": args.local_ep,
-    #     "batch_size": args.bs,
-    #     "base_class": args.base_class,
-    #     "target_class": args.target_class,
-    #     "poison_frac": args.poison_frac,
-    #     "pattern": args.pattern,
-    #     "climg_attack": args.climg_attack,
-    #     "poison_frac": args.poison_frac,
-    #     "pattern": args.pattern,
-    #     "delta_val": args.delta_val,
-    #     "delta_attack": args.delta_attack,
-    #     "frequency": args.frequency,
-    #     "norm": args.norm,
-    #     "attack_interval": args.attack_interval,
-    #     "distribution": args.distribution,
-    #     "topk": args.topk, 
-    #     "metric": args.metric,
-    #     }
-    # )
+    wandb.init(
+        project = project_name, 
+        name = f"dv: {args.delta_val}, da: {args.delta_attack}, f: {args.frequency}, ai: {args.attack_interval}",
+        config={
+        "learning_rate": args.client_lr,
+        "dataset": args.data,
+        "total_agents": args.num_agents,
+        "number_corrupt": args.num_corrupt,
+        "rounds": args.rounds,
+        "aggragator": args.aggr,
+        "local_epoch": args.local_ep,
+        "batch_size": args.bs,
+        "base_class": args.base_class,
+        "target_class": args.target_class,
+        "poison_frac": args.poison_frac,
+        "pattern": args.pattern,
+        "climg_attack": args.climg_attack,
+        "poison_frac": args.poison_frac,
+        "pattern": args.pattern,
+        "delta_val": args.delta_val,
+        "delta_attack": args.delta_attack,
+        "frequency": args.frequency,
+        "norm": args.norm,
+        "attack_interval": args.attack_interval,
+        "distribution": args.distribution,
+        "topk": args.topk, 
+        "metric": args.metric,
+        }
+    )
 
     # load dataset and user groups (i.e., user to data mapping)
     if args.data in ['cifar10', 'cifar100', 'tinyimage', 'fedemnist', 'fmnist']:
         # load dataset and user groups (i.e., user to data mapping)
         train_dataset, val_dataset = utilities.get_datasets(args)
-        print(f'len1 = {len(train_dataset)} and len2 = {len(val_dataset)}')
         val_loader = DataLoader(val_dataset, batch_size=args.bs, shuffle=False, num_workers=args.num_workers, pin_memory=False)
         print("Data loaded")
-        exit()
 
         #Distribute the data among the users (not needed for fedemnist as it is pre distributed)
         if args.data not in ['fedemnist']:
