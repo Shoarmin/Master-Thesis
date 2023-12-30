@@ -102,12 +102,6 @@ def args_parser():
     parser.add_argument('--step_lr', type=boolean_string, default=True,
                         help="use scheduler to reduce learning rate")
     
-    parser.add_argument('--save_state', type=boolean_string, default=False,
-                    help="Save the resulting model after training for x amount of rounds")
-    
-    parser.add_argument('--load_model', type=boolean_string, default=False,
-                help="Decide if you want to load a model")
-    
     parser.add_argument('--maskfraction', type=float, default=0.99,
                     help="Add the fraction that you want to mask for neurotoxin attack")
     

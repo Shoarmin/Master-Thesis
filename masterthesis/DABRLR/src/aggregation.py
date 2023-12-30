@@ -1,14 +1,11 @@
 import torch
-import models
 from torch.nn.utils import vector_to_parameters, parameters_to_vector
 from sklearn.metrics.pairwise import pairwise_distances
 # import hdbscan
 import numpy as np
 from torch.autograd import grad
-from copy import deepcopy
 from torch.nn import functional as F
 import torch.nn as nn
-import torchvision
 import wandb
 
 
@@ -69,6 +66,7 @@ class Aggregation():
         return l2_mal, l2_benign
     
     def deep_leakage_from_gradients(self, global_model, agent): 
+        """retrieve original image from trained model """
         optimizer = torch.optim.SGD(global_model.parameters(), lr=self.args.client_lr, momentum=self.args.client_moment)
         examples = iter(agent.train_loader)
         criterion = nn.CrossEntropyLoss().to(self.args.device)
@@ -234,6 +232,7 @@ class Aggregation():
         return  sm_updates / total_data
     
     def agg_comed(self, agent_updates_dict):
+        """aggregate using the geometric median instead of the average"""
         agent_updates_col_vector = [update.view(-1, 1) for update in agent_updates_dict.values()]
         concat_col_vectors = torch.cat(agent_updates_col_vector, dim=1)
         return torch.median(concat_col_vectors, dim=1).values
@@ -245,6 +244,7 @@ class Aggregation():
         return torch.sign(sm_signs)
 
     def clip_updates(self, agent_updates_dict):
+        """Clip the updates based on the average norm of all incoming updates"""
         for update in agent_updates_dict.values():
             l2_update = torch.norm(update, p=2) 
             update.div_(max(1, l2_update/self.args.clip))

@@ -11,15 +11,13 @@ from options import args_parser
 from aggregation import Aggregation
 from utilities import H5Dataset
 import random
-from torch.utils.data import DataLoader, TensorDataset
+from torch.utils.data import DataLoader
 import torch.nn as nn
 from utils.text_load import Dictionary
-from time import ctime
 from torch.nn.utils import parameters_to_vector, vector_to_parameters
 torch.backends.cudnn.enabled = True
 torch.backends.cudnn.benchmark = True
 import warnings
-import os
 import wandb
 from gradcam.utils import visualize_cam
 from gradcam import GradCAM, GradCAMpp
@@ -32,7 +30,7 @@ if __name__ == '__main__':
     warnings.filterwarnings("ignore")
     torch.manual_seed(2809)
     if args.explain == 0:
-        project_name = f"test"#{args.data}-{args.aggr}-{args.num_agents}-{args.pattern}-{args.norm}-{args.attack_interval}"
+        project_name = f"{args.data}-{args.aggr}-{args.num_agents}-{args.pattern}-{args.norm}-{args.attack_interval}"
     elif args.explain == 1:
         project_name = "gradcam"
     elif args.explain == 2:
@@ -138,7 +136,7 @@ if __name__ == '__main__':
             if args.climg_attack == 1: 
                 examples = iter(val_set_dict[5])
             else:
-                examples = iter(val_loader) #Change to poisoned_train_loader to see the images trained on
+                examples = iter(poisoned_train_loader) #Change to poisoned_train_loader to see the images trained on
             example_data, example_targets = next(examples)
             img_grid = torchvision.utils.make_grid(example_data)
             grid_image_np = img_grid.permute(1, 2, 0).cpu().numpy()

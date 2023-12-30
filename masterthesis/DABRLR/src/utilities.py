@@ -3,8 +3,6 @@ import numpy as np
 import pandas as pd
 from torch.utils.data import Dataset, TensorDataset
 from torchvision import datasets, transforms
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import pairwise_distances
 from math import floor
 from collections import defaultdict
 import random
@@ -15,10 +13,8 @@ import nltk
 nltk.download('stopwords')
 from nltk.corpus import stopwords
 from nltk.stem import SnowballStemmer
-from utils import text_load
 from collections import Counter
 import os
-import math
 import wandb
 from utils.text_load import *
 import torch.nn.functional as F
@@ -68,10 +64,9 @@ class DatasetSplit(Dataset):
         return inp, target
 
 def distribute_dirichlet(dataset, args, num_classes):
-    print(num_classes)
-    net_dataidx_map = {}
+    data_idxs = {}
 
-    batch_id = [[] for _ in range(args.num_agents)]
+    shard_id = [[] for _ in range(args.num_agents)]
     for k in range(num_classes):
         idx_k = np.where(dataset.targets == k)[0]
         np.random.shuffle(idx_k)
@@ -80,13 +75,13 @@ def distribute_dirichlet(dataset, args, num_classes):
         dist = dist / dist.sum()
         dist = (np.cumsum(dist) * len(idx_k)).astype(int)[:-1]
 
-        batch_id = [j + i.tolist() for j, i in zip(batch_id, np.split(idx_k, dist))]
+        shard_id = [j + i.tolist() for j, i in zip(shard_id, np.split(idx_k, dist))]
 
     for j in range(args.num_agents):
-        np.random.shuffle(batch_id[j])
-        net_dataidx_map[j] = batch_id[j]
+        np.random.shuffle(shard_id[j])
+        data_idxs[j] = shard_id[j]
 
-    return net_dataidx_map
+    return data_idxs
 
 def distribute_data(dataset, args):
     n_classes = len(dataset.targets.unique()) 
@@ -170,11 +165,9 @@ def get_datasets(args):
     elif args.data == 'cifar10':
         transform_train = transforms.Compose([
             transforms.ToTensor(),
-            # transforms.Normalize(mean=(0.4914, 0.4822, 0.4465), std=(0.2023, 0.1994, 0.2010)),
         ])
         transform_test = transforms.Compose([
             transforms.ToTensor(),
-            # transforms.Normalize(mean=(0.4914, 0.4822, 0.4465), std=(0.2023, 0.1994, 0.2010)),
         ])
         train_dataset = datasets.CIFAR10(data_dir, train=True, download=True, transform=transform_train)
         test_dataset = datasets.CIFAR10(data_dir, train=False, download=True, transform=transform_test)
@@ -770,7 +763,6 @@ def print_exp_details(args):
     print(f'    Clip: {args.clip}')
     print(f'    Poison Sentence: {args.poison_sentence}')
     print(f'    Type of attack: {args.attack}')
-    print(f'    Load_model: {args.load_model}')
     print(f'    Attack_rounds: {args.attack_rounds}')
     print(f'    delta_attack: {args.delta_attack}')
     print(f'    delta_val: {args.delta_val}')
