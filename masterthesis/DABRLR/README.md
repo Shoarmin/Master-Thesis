@@ -1,4 +1,4 @@
-Backdoor Attacks in a Federated Framework Using Pixel Intensities
+# Backdoor Attacks in a Federated Framework Using Pixel Intensities
 
 To use the code, first get [the datasets](https://drive.google.com/drive/folders/1ta4ZSgRGc6hObZEoYJ8DscO-s4PnL6Ww?usp=sharing), and unzip them in the 'data' directory. The FMNIST and Cifar-10(0) dataset should download automatically when executing the code for the first time and do not need to be downloaded separately.
 
